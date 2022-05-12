@@ -10,6 +10,7 @@ from selenium.webdriver.support.select import Select
 from selenium.webdriver.support.wait import WebDriverWait
 
 from config.config import settings as config_file
+from helpers.retry_function import retry_on_exception
 from webdrivers.webdriver import WebDriver
 from . import routes
 
@@ -36,30 +37,9 @@ def schedule_appointment_controller():
         # Waiting for user area page to be fully loaded
         # FIXME: I should set here a retry system
         WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.ID, 'advanced')))
-        driver.get('https://prenotami.esteri.it/Language/ChangeLanguage?lang=13')
-        WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.ID, 'advanced')))
-        prenotami_tab = driver.find_element(By.ID, 'advanced')
-        driver.execute_script("arguments[0].click();", prenotami_tab)
+        search_for_available_appointment(appointment_data, driver)
 
-        # Waiting for prenotami tab to be fully loaded
-        WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.ID, 'dataTableServices')))
-        select_appointment(driver, appointment_data['appointment_type'])
-
-        # Waiting for appointment page to be fully loaded
-        WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.ID, 'typeofbookingddl')))
-        complete_appointment_details(driver, appointment_data)
-
-        privacy_check_box = driver.find_element(By.ID, 'PrivacyCheck')
-        driver.execute_script("arguments[0].click();", privacy_check_box)
-
-        next_button = driver.find_element(By.ID, 'btnAvanti')
-        driver.execute_script("arguments[0].click();", next_button)
-
-        driver.switch_to.alert.accept()
-
-        check_calendar_or_raise_exception(driver)
-
-        search_appointment_or_raise_exception(driver)
+        select_available_appointment_or_raise_exception(driver)
 
         # Accept appointment
         accept_appointment_button = driver.find_element(By.ID, 'btnPrenotaNoOtp')
@@ -80,7 +60,30 @@ def schedule_appointment_controller():
             pass
 
 
-def search_appointment_or_raise_exception(driver):
+@retry_on_exception(max_attempts=10, retry_sleep_time=5)
+def search_for_available_appointment(appointment_data, driver):
+    driver.get('https://prenotami.esteri.it/Language/ChangeLanguage?lang=13')
+    WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.ID, 'advanced')))
+    driver.get('https://prenotami.esteri.it/Services')
+
+    # Waiting for prenotami tab to be fully loaded
+    WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.ID, 'dataTableServices')))
+    redirect_to_appointment_page(driver, appointment_data['appointment_type'])
+
+    complete_appointment_details(driver, appointment_data)
+
+    privacy_check_box = driver.find_element(By.ID, 'PrivacyCheck')
+    driver.execute_script("arguments[0].click();", privacy_check_box)
+
+    next_button = driver.find_element(By.ID, 'btnAvanti')
+    driver.execute_script("arguments[0].click();", next_button)
+
+    driver.switch_to.alert.accept()
+
+    check_calendar_or_raise_exception(driver)
+
+
+def select_available_appointment_or_raise_exception(driver):
     loop = 0
     while True:
         if loop > 11:
@@ -106,13 +109,18 @@ def check_calendar_or_raise_exception(driver):
     try:
         WebDriverWait(driver, 5).until(
             EC.presence_of_element_located((By.XPATH, './/section[@class="calendario"]')))
-    except NoSuchElementException:
+    except TimeoutException:
+        try:
+            ok_button = driver.find_element(By.XPATH, './/button[@class="btn btn-blue"]')
+            driver.execute_script("arguments[0].click();", ok_button)
+        except:
+            pass
         raise NeedsRetryException('No available appointments')
 
 
 # TODO: Maybe we could add new appointment types
 # FIXME: There needs to be an appointment validator. Not every appointment is available for any city
-def select_appointment(driver, APPOINTMENT):
+def redirect_to_appointment_page(driver, APPOINTMENT):
     if APPOINTMENT == 'PASAPORTE':
         return driver.get('https://prenotami.esteri.it/Services/Booking/104')
     if APPOINTMENT == 'CIUDADANIA DESCENDENCIA':
@@ -178,29 +186,45 @@ def return_full_parental_relationship(parental_relationship):
 
 
 def complete_passport_appointment_data(driver, appointment_data):
-    if appointment_data.get('multiple_appointment'):
-        multiple_appointment_select = Select(driver.find_element(By.ID, 'typeofbookingddl'))
-        time.sleep(0.1)
-        multiple_appointment_select.select_by_visible_text('Reserva multiple')
+    # Waiting for appointment page to be fully loaded
+    WebDriverWait(driver, 5).until(EC.visibility_of_element_located((By.XPATH, './/select[@id="typeofbookingddl"]/option[text()="Reserva multiple"]')))
 
-        if int(appointment_data['additional_people_amount']) > 4:
+    if appointment_data.get('multiple_appointment'):
+        multiple_appointment_select = driver.find_element(By.ID, 'typeofbookingddl')
+        multiple_appointment_select.send_keys(Keys.ARROW_DOWN)
+        multiple_appointment_select.send_keys('Reserva multiple')
+
+        if appointment_data['additional_people_amount'] > 4:
             raise Exception('Additional people amount cannot be greater than 4')
+        additional_people_input = driver.find_element(By.ID, 'ddlnumberofcompanions')
+        additional_people_input.send_keys(Keys.ARROW_DOWN)
         additional_people_input = Select(driver.find_element(By.ID, 'ddlnumberofcompanions'))
-        time.sleep(0.1)
-        additional_people_input.select_by_visible_text(appointment_data['additional_people_amount'])
+        additional_people_input.select_by_visible_text(str(appointment_data['additional_people_amount']))
 
     address_input = driver.find_element(By.ID, 'DatiAddizionaliPrenotante_0___testo')
     address_input.send_keys(appointment_data['address'])
 
+    # FIXME: We need to set a validator for this option
+    WebDriverWait(driver, 5).until(EC.visibility_of_element_located(
+        (By.XPATH, './/select[@id="ddls_1"]/option[text()="{}"]'.format(appointment_data['have_kids'].capitalize()))))
+    have_kids_select = driver.find_element(By.ID, 'ddls_1')
+    have_kids_select.send_keys(Keys.ARROW_DOWN)
     have_kids_select = Select(driver.find_element(By.ID, 'ddls_1'))
-    time.sleep(0.1)
     have_kids_select.select_by_visible_text(appointment_data['have_kids'].capitalize())
 
-    marital_status = Select(driver.find_element(By.ID, 'ddls_2'))
-    marital_status.select_by_visible_text(return_full_marital_status(appointment_data['marital_status']))
+    WebDriverWait(driver, 5).until(EC.visibility_of_element_located(
+        (By.XPATH, './/select[@id="ddls_2"]/option[text()="{}"]'.format(return_full_marital_status(appointment_data['marital_status'])))))
+    marital_status_select = driver.find_element(By.ID, 'ddls_2')
+    marital_status_select.send_keys(Keys.ARROW_DOWN)
+    marital_status_select = Select(driver.find_element(By.ID, 'ddls_2'))
+    marital_status_select.select_by_visible_text(return_full_marital_status(appointment_data['marital_status']))
 
-    have_expired_passport = Select(driver.find_element(By.ID, 'ddls_3'))
-    have_expired_passport.select_by_visible_text(appointment_data['is_passport_expired'].capitalize())
+    WebDriverWait(driver, 5).until(EC.visibility_of_element_located(
+        (By.XPATH, './/select[@id="ddls_3"]/option[text()="{}"]'.format(appointment_data['is_passport_expired'].capitalize()))))
+    have_expired_passport_select = driver.find_element(By.ID, 'ddls_3')
+    have_expired_passport_select.send_keys(Keys.ARROW_DOWN)
+    have_expired_passport_select = Select(driver.find_element(By.ID, 'ddls_3'))
+    have_expired_passport_select.select_by_visible_text(appointment_data['is_passport_expired'].capitalize())
 
     amount_minor_kids_input = driver.find_element(By.ID, 'DatiAddizionaliPrenotante_4___testo')
     amount_minor_kids_input.send_keys(appointment_data['amount_minor_kids'])
@@ -209,17 +233,37 @@ def complete_passport_appointment_data(driver, appointment_data):
         for index, companion_data in enumerate(appointment_data['additional_people_data']):
             last_name_input = driver.find_element(By.ID, 'Accompagnatori_{}__CognomeAccompagnatore'.format(index))
             last_name_input.send_keys(companion_data['last_name'])
+
             first_name_input = driver.find_element(By.ID, 'Accompagnatori_{}__NomeAccompagnatore'.format(index))
             first_name_input.send_keys(companion_data['first_name'])
+
             birthdate_input = driver.find_element(By.ID, 'Accompagnatori_{}__DataNascitaAccompagnatore'.format(index))
             birthdate_input.send_keys(companion_data['birthdate'])
+
+            WebDriverWait(driver, 5).until(EC.visibility_of_element_located(
+                (By.XPATH, './/select[@id="TypeOfRelationDDL{}"]/option[text()="{}"]'
+                 .format(index, return_full_parental_relationship(companion_data['relationship'])))))
+            parental_relationship_select = driver.find_element(By.ID, 'TypeOfRelationDDL{}'.format(index))
+            parental_relationship_select.send_keys(Keys.ARROW_DOWN)
             parental_relationship_select = Select(driver.find_element(By.ID, 'TypeOfRelationDDL{}'.format(index)))
             parental_relationship_select.select_by_visible_text(return_full_parental_relationship(companion_data['relationship']))
+
+            WebDriverWait(driver, 5).until(EC.visibility_of_element_located(
+                (By.XPATH, './/select[@id="ddlsAcc_{}_0"]/option[text()="{}"]'
+                 .format(index, companion_data['have_kids'].capitalize()))))
+            have_kids_select = driver.find_element(By.ID, 'ddlsAcc_{}_0'.format(index))
+            have_kids_select.send_keys(Keys.ARROW_DOWN)
             have_kids_select = Select(driver.find_element(By.ID, 'ddlsAcc_{}_0'.format(index)))
-            time.sleep(0.1)
             have_kids_select.select_by_visible_text(companion_data['have_kids'].capitalize())
+
+            WebDriverWait(driver, 5).until(EC.visibility_of_element_located(
+                (By.XPATH, './/select[@id="ddlsAcc_{}_1"]/option[text()="{}"]'
+                 .format(index, return_full_marital_status(companion_data['marital_status'])))))
+            marital_status_select = driver.find_element(By.ID, 'ddlsAcc_{}_1'.format(index))
+            marital_status_select.send_keys(Keys.ARROW_DOWN)
             marital_status_select = Select(driver.find_element(By.ID, 'ddlsAcc_{}_1'.format(index)))
             marital_status_select.select_by_visible_text(return_full_marital_status(companion_data['marital_status']))
+
             address_input = driver.find_element(By.ID, 'Accompagnatori_{}__DatiAddizionaliAccompagnatore_2___testo'.format(index))
             address_input.send_keys(companion_data['address'])
 
