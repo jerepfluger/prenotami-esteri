@@ -17,7 +17,7 @@ def retry(success_condition: typing.Callable = lambda x: x is not None, max_atte
 
                 logger.info(
                     "{}: retrying.. ({} retries remaining) Sleeping for 1 sec".format(name,
-                                                                                      max_attempts - retry_count + 1))
+                                                                                      max_attempts - retry_count - 1))
                 time.sleep(retry_sleep_time)
 
             logger.info("{}: end of retries".format(name))
@@ -41,8 +41,8 @@ def retry_on_exception(max_attempts=0, exception_on_error: Exception = None, ret
                     result = func(*args)
                     return result
                 except Exception as ex:
-                    logger.info("{}: retrying.. ({} retries remaining) Sleeping for 1 sec".format(name,
-                                                                                                  max_attempts - retry_count + 1))
+                    logger.info("Retrying function {} ({} retries remaining). Exception: {}. Sleeping for 1 sec"
+                                .format(name, max_attempts - retry_count - 1, str(ex)))
                     time.sleep(retry_sleep_time)
                     last_ex = ex
             last_ex = last_ex or exception_on_error
