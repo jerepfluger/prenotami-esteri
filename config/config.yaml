@@ -42,6 +42,8 @@ crawling:
   # Config for particulars
   basic_controller_config:
     webdriver_type: "firefox"
+  appointment_controller:
+    webdriver_type: "firefox"
 
 log:
   rotate:

@@ -34,7 +34,7 @@ class FirefoxWebdriver:
 
         options = FirefoxOptions()
         options.binary_location = settings.web_driver.firefox_binary
-        options.add_argument('--headless')
+        # options.add_argument('--headless')
         options.add_argument('--new_instance')
 
         #  https://developer.mozilla.org/en-US/docs/Mozilla/Preferences/Mozilla_networking_preferences
