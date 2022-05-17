@@ -1,6 +1,8 @@
 import time
 import typing
 
+from selenium.common.exceptions import NoSuchElementException, TimeoutException
+
 from helpers.logger import logger
 
 
@@ -41,8 +43,12 @@ def retry_on_exception(max_attempts=0, exception_on_error: Exception = None, ret
                     result = func(*args)
                     return result
                 except Exception as ex:
-                    logger.info("Retrying function {} ({} retries remaining). Exception: {}. Sleeping for 1 sec"
-                                .format(name, max_attempts - retry_count - 1, str(ex)))
+                    if isinstance(ex, TimeoutException):
+                        logger.error("Retrying function {} ({} retries remaining). Exception: {}. Sleeping for 1 sec"
+                                    .format(name, max_attempts - retry_count - 1, 'selenium TimeoutException'))
+                    else:
+                        logger.error("Retrying function {} ({} retries remaining). Exception: {}. Sleeping for 1 sec"
+                                    .format(name, max_attempts - retry_count - 1, ex))
                     time.sleep(retry_sleep_time)
                     last_ex = ex
             last_ex = last_ex or exception_on_error

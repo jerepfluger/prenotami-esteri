@@ -2,6 +2,7 @@ import json
 import time
 
 from flask import request
+from flask import Response as FlaskResponse
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
 from selenium.webdriver import Keys
 from selenium.webdriver.common.by import By
@@ -11,6 +12,7 @@ from selenium.webdriver.support.wait import WebDriverWait
 
 from config.config import settings as config_file
 from helpers.retry_function import retry_on_exception
+from helpers.logger import logger
 from webdrivers.webdriver import WebDriver
 from . import routes
 
@@ -27,6 +29,7 @@ def schedule_appointment_controller():
         WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.ID, 'login-email')))
         driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
         # Complete username field
+        logger.info('Logging user {}'.format(appointment_data['user'].split('@')[0]))
         username_input = driver.find_element(By.ID, 'login-email')
         username_input.send_keys(appointment_data['user'])
         # Complete password field
@@ -39,12 +42,14 @@ def schedule_appointment_controller():
         WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.ID, 'advanced')))
         search_for_available_appointment(appointment_data, driver)
 
+        logger.info('Should be an available appointment. Start searching')
         select_available_appointment_or_raise_exception(driver)
 
         # Accept appointment
         accept_appointment_button = driver.find_element(By.ID, 'btnPrenotaNoOtp')
         driver.execute_script("arguments[0].click();", accept_appointment_button)
 
+        return FlaskResponse('Successfully scheduled an appointment', status=200)
         # Accept and close
         # WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.ID, 'btnStampa')))
 
@@ -52,15 +57,17 @@ def schedule_appointment_controller():
         # driver.save_full_page_screenshot()
 
     except Exception as ex:
-        print(ex)
+        logger.exception(ex)
         try:
             driver.close()
             driver.quit()
         except NameError:
             pass
+        logger.info('Webdriver fully distroyed')
+        return FlaskResponse('Unable to schedule an appointment', status=404)
 
 
-@retry_on_exception(max_attempts=10, retry_sleep_time=5)
+@retry_on_exception(max_attempts=100, retry_sleep_time=5)
 def search_for_available_appointment(appointment_data, driver):
     driver.get('https://prenotami.esteri.it/Language/ChangeLanguage?lang=13')
     WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.ID, 'advanced')))
@@ -68,8 +75,10 @@ def search_for_available_appointment(appointment_data, driver):
 
     # Waiting for prenotami tab to be fully loaded
     WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.ID, 'dataTableServices')))
+    logger.info('Selecting appointment type {}'.format(appointment_data['appointment_type']))
     redirect_to_appointment_page(driver, appointment_data['appointment_type'])
 
+    logger.info('Completing appointment data')
     complete_appointment_details(driver, appointment_data)
 
     privacy_check_box = driver.find_element(By.ID, 'PrivacyCheck')
@@ -80,6 +89,7 @@ def search_for_available_appointment(appointment_data, driver):
 
     driver.switch_to.alert.accept()
 
+    logger.info('Data completition finished. Checking for available appointments')
     check_calendar_or_raise_exception(driver)
 
 
@@ -91,18 +101,22 @@ def select_available_appointment_or_raise_exception(driver):
         try:
             WebDriverWait(driver, 3).until(
                 EC.presence_of_element_located((By.XPATH, './/td[@class="day availableDay"]')))
+            logger.info('Available appointment found!')
             available_date = driver.find_element(By.XPATH, './/td[@class="day availableDay"]')
             driver.execute_script("arguments[0].click();", available_date)
             break
         except TimeoutException:
             try:
+                logger.info('Looking for appointments on Next Month')
                 WebDriverWait(driver, 5).until(
                     EC.presence_of_element_located((By.XPATH, './/span[@title="Next Month"]')))
                 next_month_button = driver.find_element(By.XPATH, './/span[@title="Next Month"]')
                 driver.execute_script("arguments[0].click();", next_month_button)
                 loop += 1
             except NoSuchElementException:
-                raise NeedsRetryException('Unable to pick appointment')
+                raise Exception('Unable to pick appointment')
+            except TimeoutException:
+                raise Exception('Timeout waiting for click NextMonth button')
 
 
 def check_calendar_or_raise_exception(driver):
@@ -113,23 +127,24 @@ def check_calendar_or_raise_exception(driver):
         try:
             ok_button = driver.find_element(By.XPATH, './/button[@class="btn btn-blue"]')
             driver.execute_script("arguments[0].click();", ok_button)
-        except:
+        except NoSuchElementException:
             pass
-        raise NeedsRetryException('No available appointments')
+        logger.info('No appointments available')
+        raise Exception('No available appointments')
 
 
 # TODO: Maybe we could add new appointment types
 # FIXME: There needs to be an appointment validator. Not every appointment is available for any city
-def redirect_to_appointment_page(driver, APPOINTMENT):
-    if APPOINTMENT == 'PASAPORTE':
+def redirect_to_appointment_page(driver, appointment_type):
+    if appointment_type == 'PASAPORTE':
         return driver.get('https://prenotami.esteri.it/Services/Booking/104')
-    if APPOINTMENT == 'CIUDADANIA DESCENDENCIA':
+    if appointment_type == 'CIUDADANIA DESCENDENCIA':
         return driver.get('https://prenotami.esteri.it/Services/Booking/340')
-    if APPOINTMENT == 'CIUDADANIA PADRES':
+    if appointment_type == 'CIUDADANIA PADRES':
         return driver.get('https://prenotami.esteri.it/Services/Booking/339')
-    if APPOINTMENT == 'VISADOS':
+    if appointment_type == 'VISADOS':
         return driver.get('https://prenotami.esteri.it/Services/Booking/753')
-    if APPOINTMENT == 'CARTA DE IDENTIDAD':
+    if appointment_type == 'CARTA DE IDENTIDAD':
         return driver.get('https://prenotami.esteri.it/Services/Booking/645')
     raise Exception('Unknown appointment type')
 
@@ -328,8 +343,3 @@ def complete_appointment_details(driver, appointment_data):
     if appointment_data['appointment_type'] == 'CARTA DE IDENTIDAD':
         complete_id_card_data(driver, appointment_data)
     # There's no need for completing any data for descendent citizenship appointment
-
-
-class NeedsRetryException(Exception):
-    def __init__(self, message):
-        self.message = message
