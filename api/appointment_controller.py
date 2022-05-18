@@ -1,8 +1,8 @@
 import json
 import time
 
-from flask import request
 from flask import Response as FlaskResponse
+from flask import request
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
 from selenium.webdriver import Keys
 from selenium.webdriver.common.by import By
@@ -11,34 +11,65 @@ from selenium.webdriver.support.select import Select
 from selenium.webdriver.support.wait import WebDriverWait
 
 from config.config import settings as config_file
-from helpers.retry_function import retry_on_exception
+from dto.base_appointment import Appointment
 from helpers.logger import logger
+from helpers.retry_function import retry_on_exception
+from service.appointment_service import AppointmentService
 from webdrivers.webdriver import WebDriver
 from . import routes
 
 
+@routes.route("/prenotami-esteri/run_unscheduled_appointment", methods=["POST"])
+def run_unscheduled_appointment():
+    logger.info('Searching for unscheduled appointments in database')
+    unscheduled_appointment = get_unscheduled_appointment()
+    if unscheduled_appointment.status_code == 200 and unscheduled_appointment.data.decode('utf-8') != '{}':
+        logger.info('Unscheduled appointment found. Start processing')
+        return schedule_appointment_internal(json.loads(unscheduled_appointment.data))
+    logger.info('No unscheduled appointments were found')
+    return FlaskResponse('No unscheduled appointments were found', status=200)
+
+
+@routes.route("/prenotami-esteri/get_unscheduled_appointment", methods=["GET"])
+def get_unscheduled_appointment():
+    logger.info('Searching for unscheduled appointments in database')
+    result = AppointmentService().retrieve_unfinished_appointment_scheduling()
+    logger.info('Retrieving unscheduled appointments from database')
+    return FlaskResponse(json.dumps(result, default=lambda o: o.__dict__), 200)
+
+
+@routes.route("/prenotami-esteri/register_appointment_in_database", methods=["POST"])
+def schedule_appointment_via_database():
+    logger.info('Saving appointment to be scheduled in database')
+    appointment_data = Appointment(**json.loads(request.data))
+    try:
+        result = AppointmentService().save_new_appointment_in_database(appointment_data)
+        return FlaskResponse('Successfully saved new appointment into database. appointment_id = {}'.format(result),
+                             status=200)
+    except Exception as ex:
+        logger.exception(ex)
+        return FlaskResponse('An exception occurred', status=500)
+
+
 @routes.route("/prenotami-esteri/schedule_appointment", methods=["POST"])
-def schedule_appointment_controller():
+def schedule_appointment():
+    logger.info('Beginning scheduling appointment process from json')
     appointment_data = json.loads(request.data)
+    return schedule_appointment_internal(appointment_data)
+
+
+@routes.route("/prenotami-esteri/schedule_appointment_internal", methods=["POST"])
+def schedule_appointment_internal(jsonized_data):
+    logger.info('Beginning scheduling appointment process')
+    appointment_data = jsonized_data
     # FIXME: Sanitize data here
     try:
         driver = WebDriver().acquire(config_file.crawling.appointment_controller.webdriver_type)
         driver.maximize_window()
         driver.get('https://prenotami.esteri.it/')
-        # Waiting for login page to be fully loaded
-        WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.ID, 'login-email')))
-        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-        # Complete username field
-        logger.info('Logging user {}'.format(appointment_data['user'].split('@')[0]))
-        username_input = driver.find_element(By.ID, 'login-email')
-        username_input.send_keys(appointment_data['user'])
-        # Complete password field
-        password_input = driver.find_element(By.ID, 'login-password')
-        password_input.send_keys(appointment_data['pass'])
-        password_input.send_keys(Keys.ENTER)
+        log_in_user(appointment_data, driver)
 
         # Waiting for user area page to be fully loaded
-        # FIXME: I should set here a retry system
         WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.ID, 'advanced')))
         search_for_available_appointment(appointment_data, driver)
 
@@ -49,7 +80,8 @@ def schedule_appointment_controller():
         accept_appointment_button = driver.find_element(By.ID, 'btnPrenotaNoOtp')
         driver.execute_script("arguments[0].click();", accept_appointment_button)
 
-        return FlaskResponse('Successfully scheduled an appointment', status=200)
+        AppointmentService().set_appointment_scheduled()
+        response = FlaskResponse('Successfully scheduled an appointment', status=200)
         # Accept and close
         # WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.ID, 'btnStampa')))
 
@@ -63,8 +95,26 @@ def schedule_appointment_controller():
             driver.quit()
         except NameError:
             pass
-        logger.info('Webdriver fully distroyed')
-        return FlaskResponse('Unable to schedule an appointment', status=404)
+        logger.info('Webdriver fully destroyed')
+        response = FlaskResponse('Unable to schedule an appointment', status=404)
+    finally:
+        AppointmentService().update_appointment_timestamp()
+        return response
+
+
+@retry_on_exception(5, retry_sleep_time=5)
+def log_in_user(appointment_data, driver):
+    # Waiting for login page to be fully loaded
+    WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.ID, 'login-email')))
+    driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+    # Complete username field
+    logger.info('Logging user {}'.format(appointment_data['username'].split('@')[0]))
+    username_input = driver.find_element(By.ID, 'login-email')
+    username_input.send_keys(appointment_data['username'])
+    # Complete password field
+    password_input = driver.find_element(By.ID, 'login-password')
+    password_input.send_keys(appointment_data['password'])
+    password_input.send_keys(Keys.ENTER)
 
 
 @retry_on_exception(max_attempts=100, retry_sleep_time=5)
@@ -202,7 +252,8 @@ def return_full_parental_relationship(parental_relationship):
 
 def complete_passport_appointment_data(driver, appointment_data):
     # Waiting for appointment page to be fully loaded
-    WebDriverWait(driver, 5).until(EC.visibility_of_element_located((By.XPATH, './/select[@id="typeofbookingddl"]/option[text()="Reserva multiple"]')))
+    WebDriverWait(driver, 5).until(EC.visibility_of_element_located(
+        (By.XPATH, './/select[@id="typeofbookingddl"]/option[text()="Reserva multiple"]')))
 
     if appointment_data.get('multiple_appointment'):
         multiple_appointment_select = driver.find_element(By.ID, 'typeofbookingddl')
@@ -228,14 +279,16 @@ def complete_passport_appointment_data(driver, appointment_data):
     have_kids_select.select_by_visible_text(appointment_data['have_kids'].capitalize())
 
     WebDriverWait(driver, 5).until(EC.visibility_of_element_located(
-        (By.XPATH, './/select[@id="ddls_2"]/option[text()="{}"]'.format(return_full_marital_status(appointment_data['marital_status'])))))
+        (By.XPATH, './/select[@id="ddls_2"]/option[text()="{}"]'.format(
+            return_full_marital_status(appointment_data['marital_status'])))))
     marital_status_select = driver.find_element(By.ID, 'ddls_2')
     marital_status_select.send_keys(Keys.ARROW_DOWN)
     marital_status_select = Select(driver.find_element(By.ID, 'ddls_2'))
     marital_status_select.select_by_visible_text(return_full_marital_status(appointment_data['marital_status']))
 
     WebDriverWait(driver, 5).until(EC.visibility_of_element_located(
-        (By.XPATH, './/select[@id="ddls_3"]/option[text()="{}"]'.format(appointment_data['is_passport_expired'].capitalize()))))
+        (By.XPATH,
+         './/select[@id="ddls_3"]/option[text()="{}"]'.format(appointment_data['is_passport_expired'].capitalize()))))
     have_expired_passport_select = driver.find_element(By.ID, 'ddls_3')
     have_expired_passport_select.send_keys(Keys.ARROW_DOWN)
     have_expired_passport_select = Select(driver.find_element(By.ID, 'ddls_3'))
@@ -261,7 +314,8 @@ def complete_passport_appointment_data(driver, appointment_data):
             parental_relationship_select = driver.find_element(By.ID, 'TypeOfRelationDDL{}'.format(index))
             parental_relationship_select.send_keys(Keys.ARROW_DOWN)
             parental_relationship_select = Select(driver.find_element(By.ID, 'TypeOfRelationDDL{}'.format(index)))
-            parental_relationship_select.select_by_visible_text(return_full_parental_relationship(companion_data['relationship']))
+            parental_relationship_select.select_by_visible_text(
+                return_full_parental_relationship(companion_data['relationship']))
 
             WebDriverWait(driver, 5).until(EC.visibility_of_element_located(
                 (By.XPATH, './/select[@id="ddlsAcc_{}_0"]/option[text()="{}"]'
@@ -279,7 +333,9 @@ def complete_passport_appointment_data(driver, appointment_data):
             marital_status_select = Select(driver.find_element(By.ID, 'ddlsAcc_{}_1'.format(index)))
             marital_status_select.select_by_visible_text(return_full_marital_status(companion_data['marital_status']))
 
-            address_input = driver.find_element(By.ID, 'Accompagnatori_{}__DatiAddizionaliAccompagnatore_2___testo'.format(index))
+            address_input = driver.find_element(By.ID,
+                                                'Accompagnatori_{}__DatiAddizionaliAccompagnatore_2___testo'.format(
+                                                    index))
             address_input.send_keys(companion_data['address'])
 
 
