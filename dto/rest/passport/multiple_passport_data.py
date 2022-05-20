@@ -1,4 +1,7 @@
-class PassportAdditionalPeopleData:
+from typing import List
+
+
+class MultiplePassportAdditionalPeopleData:
     def __init__(self, last_name, first_name, date_of_birth, relationship, have_kids, marital_status, address):
         self.last_name = last_name
         self.first_name = first_name
@@ -9,14 +12,13 @@ class PassportAdditionalPeopleData:
         self.address = address
 
 
-class MultipleAppointment:
+class MultiplePassportData:
     def __init__(self, address, have_kids, marital_status, own_expired_passport, minor_kids_amount,
-                 additional_people_data, additional_notes):
+                 additional_people_data: List[MultiplePassportAdditionalPeopleData], additional_notes):
         self.address = address
         self.have_kids = have_kids
         self.marital_status = marital_status
         self.own_expired_passport = own_expired_passport
         self.minor_kids_amount = minor_kids_amount
         self.additional_people_data = additional_people_data
-        self.additional_people_amount = len(self.additional_people_data)
         self.additional_notes = additional_notes

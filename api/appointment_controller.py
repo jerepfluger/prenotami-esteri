@@ -5,7 +5,6 @@ from flask import Response as FlaskResponse
 from flask import request
 
 from dto.base_appointment import Appointment
-from dto.rest.passport.multiple_appointment import MultipleAppointment
 from dto.rest.response import Response
 from helpers.logger import logger
 from service.appointment_service import AppointmentService
@@ -64,16 +63,3 @@ def schedule_appointment_internal(jsonized_data):
         return FlaskResponse(json.dumps(response.__dict__), status=HTTPStatus.OK)
     response = Response('failed', 'Unable to schedule the appointment')
     return FlaskResponse(json.dumps(response.__dict__), status=HTTPStatus.NOT_FOUND)
-
-
-@routes.route("/prenotami-esteri/schedule_multiple_passport_appointment", methods=["POST"])
-def schedule_multiple_passport_appointment():
-    logger.info('Starting multiple passport appointment procedure')
-    appointment_data = MultipleAppointment(**json.loads(request.data))
-    success = AppointmentService().schedule_multiple_appointment(appointment_data)
-    if success:
-        response = Response('success', 'Multiple passport appointment scheduled successfully')
-        return FlaskResponse(json.dumps(response).__dict__, status=HTTPStatus.OK)
-
-    response = Response('failed', 'Unable to schedule multiple passport appointment')
-    return FlaskResponse(json.dumps(response.__dict__), status=HTTPStatus.OK)

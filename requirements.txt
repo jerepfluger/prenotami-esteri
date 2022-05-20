@@ -8,3 +8,4 @@ pylru==1.2.1
 python-dotenv==0.20.0
 mysqlclient==2.1.0
 apscheduler==3.9.1
+cryptography==37.0.2
