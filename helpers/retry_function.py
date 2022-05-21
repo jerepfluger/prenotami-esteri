@@ -45,7 +45,7 @@ def retry_on_exception(max_attempts=0, exception_on_error: Exception = None, ret
                 except Exception as ex:
                     if isinstance(ex, TimeoutException):
                         logger.error("Retrying function {} ({} retries remaining). Exception: {}. Sleeping for 1 sec"
-                                    .format(name, max_attempts - retry_count - 1, 'selenium TimeoutException'))
+                                    .format(name, max_attempts - retry_count - 1, ex.__dict__['msg']))
                     else:
                         logger.error("Retrying function {} ({} retries remaining). Exception: {}. Sleeping for 1 sec"
                                     .format(name, max_attempts - retry_count - 1, ex))
