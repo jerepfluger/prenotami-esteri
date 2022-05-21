@@ -1,7 +1,4 @@
-from datetime import datetime
-
-from sqlalchemy import Column, Integer, String, Boolean, TIMESTAMP, JSON
-from sqlalchemy.types import ARRAY
+from sqlalchemy import Column, Integer, String
 
 from base import Base
 

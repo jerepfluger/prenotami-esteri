@@ -82,7 +82,7 @@ class PassportAppointmentService:
         # Waiting for prenotami tab to be fully loaded
         WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.ID, 'dataTableServices')))
         logger.info('Selecting appointment type passport')
-        self.driver.get('https://prenotami.esteri.it/Services/Booking/111')
+        self.driver.get('https://prenotami.esteri.it/Services/Booking/104')
 
         logger.info('Completing appointment data')
         self.complete_multiple_passport_appointment_data(appointment_data)
@@ -158,7 +158,8 @@ class PassportAppointmentService:
         # FIXME: We need to set a validator for this option
         WebDriverWait(self.driver, 5).until(EC.visibility_of_element_located(
             (By.XPATH,
-             './/select[@id="ddls_1"]/option[text()="{}"]'.format(appointment_data['have_kids'].capitalize()))), message='Unable to locate have_kids selector')
+             './/select[@id="ddls_1"]/option[text()="{}"]'.format(appointment_data['have_kids'].capitalize()))),
+            message='Unable to locate have_kids selector')
         have_kids_select = self.driver.find_element(By.ID, 'ddls_1')
         have_kids_select.send_keys(Keys.ARROW_DOWN)
         have_kids_select = Select(self.driver.find_element(By.ID, 'ddls_1'))

@@ -1,7 +1,6 @@
 from sqlalchemy import Integer, Column, String, ForeignKey
 from sqlalchemy.orm import relationship
 
-
 from base import Base
 
 
@@ -10,7 +9,8 @@ class MultiplePassportAdditionalPeopleDataEntity(Base):
 
     id = Column(Integer, primary_key=True)
     multiple_passport_appointment_id = Column(Integer, ForeignKey('multiple_passport_appointment.id'))
-    multiple_passport_appointment = relationship('MultiplePassportAppointmentEntity', back_populates='multiple_passport_additional_people_data')
+    multiple_passport_appointment = relationship('MultiplePassportAppointmentEntity',
+                                                 back_populates='multiple_passport_additional_people_data')
     last_name = Column(String)
     first_name = Column(String)
     date_of_birth = Column(String)

@@ -15,7 +15,7 @@ from . import routes
 def schedule_multiple_passport_appointment():
     logger.info('Starting multiple passport appointment procedure')
     marshalled_data = MultiplePassportAppointment(**json.loads(request.data))
-    success = PassportAppointmentService()\
+    success = PassportAppointmentService() \
         .schedule_multiple_passport_appointment(marshalled_data.client_login, marshalled_data.client_appointment_data)
     if success:
         response = Response('success', 'successfully schedule passport appointment for multiple people')
