@@ -6,6 +6,7 @@ from selenium.webdriver.support.select import Select
 from selenium.webdriver.support.wait import WebDriverWait
 
 from config.config import settings as config_file
+from dto.rest.login_credentials import LoginCredentials
 from helpers.logger import logger
 from helpers.retry_function import retry_on_exception
 from helpers.sanitizers import return_full_marital_status, return_full_parental_relationship
@@ -230,3 +231,9 @@ class PassportAppointmentService:
                                                      'Accompagnatori_{}__DatiAddizionaliAccompagnatore_2___testo'.format(
                                                          index))
             address_input.send_keys(companion_data['address'])
+
+    def save_multiple_passport_appointment(self, data):
+        credentials = self.database_service.get_user_credentials(data.client_login['username'])
+        if not credentials:
+            credentials = self.database_service.save_new_credentials(data.client_login['username'], data.client_login['password'])
+        return self.database_service.save_new_multiple_passport_appointment(credentials.id, data.client_appointment_data)
