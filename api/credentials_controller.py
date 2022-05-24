@@ -1,25 +1,22 @@
 import json
 from http import HTTPStatus
 
-from flask import request
 from flask import Response as FlaskResponse
+from flask import request
 
-from config.config import settings as config_file
 from dto.rest.login_credentials import LoginCredentials
 from dto.rest.response import Response
 from helpers.logger import logger
-from repositories.base_repository import BaseRepository
 from service.database_service import DatabaseService
-from webdrivers.webdriver import WebDriver
 from . import routes
 
 
-@routes.route("/prenotami-esteri/get_user_credentials", methods=["GET"])
+@routes.route('/prenotami-esteri/get_user_credentials', methods=['GET'])
 def get_user_credentials():
     user = request.args.get('user')
     if user is None:
         response = Response('failed', 'missing \'user\' query param')
-        return FlaskResponse(json.dumps(response.__dict__), status=HTTPStatus.BAD_REQUEST,)
+        return FlaskResponse(json.dumps(response.__dict__), status=HTTPStatus.BAD_REQUEST, )
     logger.info('Searching for credentials of user {}'.format(user))
 
     credentials = DatabaseService().get_user_credentials(user)
@@ -27,7 +24,7 @@ def get_user_credentials():
     return FlaskResponse(json.dumps(credentials, default=lambda o: o.__dict__), status=HTTPStatus.OK)
 
 
-@routes.route("/prenotami-esteri/save_new_login_credentials", methods=["POST"])
+@routes.route('/prenotami-esteri/save_new_login_credentials', methods=['POST'])
 def save_new_login_credentials():
     credentials = LoginCredentials(**json.loads(request.data))
     logger.info('Start credentials saving procedure for user {}'.format(credentials.username))
