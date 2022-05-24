@@ -1,5 +1,4 @@
 class LoginCredentials:
-    def __init__(self, id, username, password):
-        self.id = id
+    def __init__(self, username, password):
         self.username = username
         self.password = password

@@ -44,3 +44,6 @@ class MultiplePassportAppointmentRepository:
         self.session.commit()
 
         return appointment
+
+    def get_additional_people_data_by_appointment_id(self):
+        pass
