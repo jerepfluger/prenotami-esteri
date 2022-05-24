@@ -16,7 +16,7 @@ def get_user_credentials():
     user = request.args.get('user')
     if user is None:
         response = Response('failed', 'missing \'user\' query param')
-        return FlaskResponse(json.dumps(response.__dict__), status=HTTPStatus.BAD_REQUEST, )
+        return FlaskResponse(json.dumps(response.__dict__), status=HTTPStatus.BAD_REQUEST)
     logger.info('Searching for credentials of user {}'.format(user))
 
     credentials = DatabaseService().get_user_credentials(user)

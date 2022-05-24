@@ -155,7 +155,7 @@ class AppointmentService:
         if appointment_type == 'PASAPORTE':
             return self.driver.get('https://prenotami.esteri.it/Services/Booking/104')
         if appointment_type == 'CIUDADANIA DESCENDENCIA':
-            return self.driver.get('https://prenotami.esteri.it/Services/Booking/595')
+            return self.driver.get('https://prenotami.esteri.it/Services/Booking/340')
         if appointment_type == 'CIUDADANIA PADRES':
             return self.driver.get('https://prenotami.esteri.it/Services/Booking/339')
         if appointment_type == 'VISADOS':
