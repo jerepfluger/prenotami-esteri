@@ -9,7 +9,7 @@ load_dotenv()
 
 engine = create_engine(
     '{}://{}:{}@{}:{}/{}'.format(env['DB_ENGINE'], env['DB_USER'], env['DB_PASSWORD'],
-                                 env['DB_HOST'], env['DB_PORT'], env['DB_SCHEMA']), echo=True)
+                                 env['DB_HOST'], env['DB_PORT'], env['DB_SCHEMA']), echo=False)
 Session = sessionmaker(bind=engine)
 
 Base = declarative_base()

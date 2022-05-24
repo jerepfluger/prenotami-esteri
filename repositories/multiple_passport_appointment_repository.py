@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from base import Session, engine, Base
 from repositories.entities.multiple_passport_appointment_entity import MultiplePassportAppointmentEntity, \
     MultiplePassportAdditionalPeopleDataEntity
@@ -27,14 +29,18 @@ class MultiplePassportAppointmentRepository:
             .first()
 
     def save_multiple_passport_appointment(self, credential_id, data):
-        appointment = MultiplePassportAppointmentEntity(login_credentials_id=credential_id, address=data['address'], have_kids=data['have_kids'],
-                                                        marital_status=data['marital_status'], own_expired_passport=data['own_expired_passport'],
-                                                        minor_kids_amount=data['minor_kids_amount'], additional_notes=data['additional_notes'], scheduled=False)
+        timestamp = datetime.now().strftime('%Y:%m:%d %H:%m:%S')
+        appointment = MultiplePassportAppointmentEntity(created_at=timestamp, last_updated_at=timestamp,
+                                                        login_credentials_id=credential_id, address=data['address'],
+                                                        have_kids=data['have_kids'],
+                                                        marital_status=data['marital_status'],
+                                                        own_expired_passport=data['own_expired_passport'],
+                                                        minor_kids_amount=data['minor_kids_amount'],
+                                                        additional_notes=data['additional_notes'], scheduled=False)
         appointment.additional_people_data = []
         fill_additional_people_data(appointment, data['additional_people_data'])
 
         self.session.add(appointment)
         self.session.commit()
-        self.session.close()
 
         return appointment

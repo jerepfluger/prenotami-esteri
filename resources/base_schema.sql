@@ -7,8 +7,7 @@ create table if not exists prenotami_esteri.base_table(
 -- auto-generated definition
 create table prenotami_esteri.appointment if not exists
 (
-    id                     int auto_increment
-        primary key,
+    id                     int auto_increment primary key,
     timestamp              timestamp   null,
     last_updated           timestamp   null,
     username               varchar(30) null,
@@ -29,11 +28,11 @@ create table prenotami_esteri.appointment if not exists
     scheduled_appointment  tinyint(1)  null
 );
 
-create table prenotami_esteri.login_credentials if not exists
+create table prenotami_esteri.login_credentials
 (
     id       int auto_increment primary key,
-    username varchar(30) null,
-    password varchar(20) null
+    username varchar(30)  null,
+    password varchar(100) null
 );
 
 

@@ -6,7 +6,6 @@ from selenium.webdriver.support.select import Select
 from selenium.webdriver.support.wait import WebDriverWait
 
 from config.config import settings as config_file
-from dto.rest.login_credentials import LoginCredentials
 from helpers.logger import logger
 from helpers.retry_function import retry_on_exception
 from helpers.sanitizers import return_full_marital_status, return_full_parental_relationship
@@ -20,11 +19,12 @@ class PassportAppointmentService:
         self.database_service = DatabaseService()
         self.appointment_repository = MultiplePassportAppointmentRepository()
         self.config = config_file.crawling
-        self.driver = WebDriver().acquire(self.config.appointment_controller.webdriver_type)
+        self.driver = None
 
     def schedule_multiple_passport_appointment(self, client_login_data, appointment_data):
         response = False
         try:
+            self.driver = WebDriver().acquire(self.config.appointment_controller.webdriver_type)
             self.driver.maximize_window()
             self.driver.get('https://prenotami.esteri.it/')
             self.log_in_user(client_login_data)
@@ -37,7 +37,8 @@ class PassportAppointmentService:
             self.select_available_appointment_or_raise_exception()
 
             # Accept appointment
-            accept_appointment_button = self.driver.find_element(By.ID, 'btnPrenotaNoOtp')
+            self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+            accept_appointment_button = self.driver.find_element(By.XPATH, './/button[contains(text(), "Reservar")]')
             self.driver.execute_script("arguments[0].click();", accept_appointment_button)
 
             self.database_service.set_appointment_scheduled()
@@ -50,14 +51,12 @@ class PassportAppointmentService:
             response = True
         except Exception as ex:
             logger.exception(ex)
-            try:
-                self.driver.close()
-                self.driver.quit()
-            except NameError:
-                pass
-            logger.info('Webdriver fully destroyed')
         finally:
+            self.driver.close()
+            self.driver.quit()
+            logger.info('Webdriver fully destroyed')
             self.database_service.update_appointment_timestamp()
+
             return response
 
     @retry_on_exception(5, retry_sleep_time=5)
@@ -102,7 +101,7 @@ class PassportAppointmentService:
     def select_available_appointment_or_raise_exception(self):
         loop = 0
         while True:
-            if loop > 11:
+            if loop > 25:
                 raise Exception('No appointments for next year')
             try:
                 WebDriverWait(self.driver, 3).until(
@@ -110,6 +109,11 @@ class PassportAppointmentService:
                 logger.info('Available appointment found!')
                 available_date = self.driver.find_element(By.XPATH, './/td[@class="day availableDay"]')
                 self.driver.execute_script("arguments[0].click();", available_date)
+                try:
+                    available_appointment = self.driver.find_elements(By.XPATH, './/div[@class="dot "]')
+                    self.driver.execute_script("arguments[0].click();", available_appointment)
+                except NoSuchElementException:
+                    pass
                 break
             except TimeoutException:
                 try:
@@ -235,5 +239,7 @@ class PassportAppointmentService:
     def save_multiple_passport_appointment(self, data):
         credentials = self.database_service.get_user_credentials(data.client_login['username'])
         if not credentials:
-            credentials = self.database_service.save_new_credentials(data.client_login['username'], data.client_login['password'])
-        return self.database_service.save_new_multiple_passport_appointment(credentials.id, data.client_appointment_data)
+            credentials = self.database_service.save_new_credentials(data.client_login['username'],
+                                                                     data.client_login['password'])
+        return self.database_service.save_new_multiple_passport_appointment(credentials.id,
+                                                                            data.client_appointment_data)

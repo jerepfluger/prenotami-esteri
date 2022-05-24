@@ -22,24 +22,26 @@ class AppointmentService:
         self.database_service = DatabaseService()
         self.appointment_repository = AppointmentRepository()
         self.config = config_file.crawling
-        self.driver = WebDriver().acquire(self.config.appointment_controller.webdriver_type)
+        self.driver = None
 
     def schedule_generic_appointment(self, appointment_data):
         response = False
         try:
+            self.driver = WebDriver().acquire(self.config.appointment_controller.webdriver_type)
             self.driver.maximize_window()
             self.driver.get('https://prenotami.esteri.it/')
             self.log_in_user(appointment_data)
 
             # Waiting for user area page to be fully loaded
             WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.ID, 'advanced')))
-            self.search_for_available_appointment(appointment_data, self.driver)
+            self.search_for_available_appointment(appointment_data)
 
             logger.info('Should be an available appointment. Start searching')
             self.select_available_appointment_or_raise_exception()
 
             # Accept appointment
-            accept_appointment_button = self.driver.find_element(By.ID, 'btnPrenotaNoOtp')
+            self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+            accept_appointment_button = self.driver.find_element(By.XPATH, './/button[contains(text(), "Reservar")]')
             self.driver.execute_script("arguments[0].click();", accept_appointment_button)
 
             self.database_service.set_appointment_scheduled()
@@ -52,13 +54,10 @@ class AppointmentService:
             response = True
         except Exception as ex:
             logger.exception(ex)
-            try:
-                self.driver.close()
-                self.driver.quit()
-            except NameError:
-                pass
-            logger.info('Webdriver fully destroyed')
         finally:
+            self.driver.close()
+            self.driver.quit()
+            logger.info('Webdriver fully destroyed')
             self.database_service.update_appointment_timestamp()
             return response
 
@@ -107,7 +106,7 @@ class AppointmentService:
     def select_available_appointment_or_raise_exception(self):
         loop = 0
         while True:
-            if loop > 11:
+            if loop > 25:
                 raise Exception('No appointments for next year')
             try:
                 WebDriverWait(self.driver, 3).until(
@@ -115,6 +114,14 @@ class AppointmentService:
                 logger.info('Available appointment found!')
                 available_date = self.driver.find_element(By.XPATH, './/td[@class="day availableDay"]')
                 self.driver.execute_script("arguments[0].click();", available_date)
+                try:
+                    available_appointment = self.driver.find_elements(By.XPATH, './/div[@class="dot "]')
+                    self.driver.execute_script("arguments[0].click();", available_appointment)
+                except NoSuchElementException:
+                    pass
+                # FIXME: Here we should have a logic in case there's more than one appointment for a given day
+                #  then we should be able to pick one of them (the first available) or step into the next availableDay
+                #  selector for multiple appointments for a day is self.driver.find_elements(By.XPATH, './/div[@class="dot "]')
                 break
             except TimeoutException:
                 try:
@@ -148,7 +155,7 @@ class AppointmentService:
         if appointment_type == 'PASAPORTE':
             return self.driver.get('https://prenotami.esteri.it/Services/Booking/104')
         if appointment_type == 'CIUDADANIA DESCENDENCIA':
-            return self.driver.get('https://prenotami.esteri.it/Services/Booking/340')
+            return self.driver.get('https://prenotami.esteri.it/Services/Booking/595')
         if appointment_type == 'CIUDADANIA PADRES':
             return self.driver.get('https://prenotami.esteri.it/Services/Booking/339')
         if appointment_type == 'VISADOS':

@@ -19,7 +19,6 @@ class AppointmentRepository:
                                         str(additional_people_data), False)
         self.session.add(appointment)
         self.session.flush()
-        self.session.close()
 
         return appointment.id
 
@@ -28,14 +27,12 @@ class AppointmentRepository:
             .filter(AppointmentEntity.id == 3) \
             .update({AppointmentEntity.last_updated: datetime.now().strftime('%Y-%m-%d %H:%M:%S')})
         self.session.commit()
-        self.session.close()
 
     def set_appointment_scheduled(self):
         self.session.query(AppointmentEntity) \
             .filter(AppointmentEntity.id == 3) \
             .updadate({AppointmentEntity.scheduled_appointment: 1})
         self.session.flush()
-        self.session.close()
 
     def get_unscheduled_appointment(self):
         return self.session.query(AppointmentEntity) \
