@@ -11,4 +11,4 @@ class Cipher(object):
         return self.cipher.encrypt(data.encode('utf-8'))
 
     def decrypt(self, data):
-        return self.cipher.decrypt(data)
+        return self.cipher.decrypt(data.encode('utf-8')).decode('utf-8')
