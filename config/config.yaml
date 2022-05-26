@@ -11,6 +11,54 @@ web_driver:
     data_path: "/tmp/chromium/data-path"
   firefox:
     cache_dir: "/tmp/firefox/cache-dir"
+    options:
+      browser.cache.disk.enable: true  # https://developer.mozilla.org/en-US/docs/Mozilla/Preferences/Mozilla_networking_preferences
+      browser.cache.memory.enable: true
+      browser.cache.disk.parent_directory: "/tmp/firefox/cache-dir"
+      browser.tabs.remote.autostart: false  # https://github.com/mozilla/geckodriver/issues/517#issuecomment-286701282
+      browser.tabs.remote.autostart.1: false
+      browser.tabs.remote.autostart.2: false
+      browser.tabs.remote.force-enable: false
+      dom.ipc.processCount: 1
+      browser.sessionstore.interval: 50000000
+      browser.sessionstore.max_resumed_crashes: 0
+      browser.sessionstore.max_tabs_undo: 0
+      browser.sessionstore.max_windows_undo: 0
+      dom.popup_maximum: 0
+      privacy.popups.showBrowserMessage: false
+      privacy.popups.disable_from_plugins: 3
+      network.http.pipelining: true
+      network.http.proxy.pipelining: true
+      network.http.pipelining.maxrequests: 8
+      content.notify.interval: 500000
+      content.notify.ontimer: true
+      content.switch.threshold: 250000
+      browser.cache.memory.capacity: 65536  # Increase the cache capacity.
+      reader.parse-on-load.enabled: false  # Disable reader, we won't need that.
+      browser.pocket.enabled: false  # Duck pocket too!
+      loop.enabled: false
+      browser.chrome.toolbar_style: 1  # Text on Toolbar instead of icons
+      browser.display.show_image_placeholders: false  # Don't show thumbnails on not loaded images.
+      browser.display.use_document_colors: false  # Don't show document colors.
+      browser.display.use_document_fonts: 0  # Don't load document fonts.
+      browser.display.use_system_colors: true  # Use system colors.
+      browser.formfill.enable: false  # Autofill on forms disabled.
+      browser.helperApps.deleteTempFileOnExit: true  # Delete temprorary files.
+      browser.shell.checkDefaultBrowser: false
+      browser.startup.homepage: "about:blank"
+      browser.startup.page: 0  # blank
+      browser.tabs.forceHide: true  # Disable tabs, We won't need that.
+      browser.urlbar.autoFill: true  # Disable autofill on URL bar.
+      browser.urlbar.autocomplete.enabled: true  # Disable autocomplete on URL bar.
+      browser.urlbar.showPopup: false  # Disable list of URLs when typing on URL bar.
+      browser.urlbar.showSearch: false  # Disable search bar.
+      extensions.checkCompatibility: false  # Addon update disabled
+      extensions.checkUpdateSecurity: false
+      extensions.update.autoUpdateEnabled: false
+      extensions.update.enabled: false
+      general.startup.browser: false
+      plugin.default_plugin_disabled: false
+      permissions.default.image: 2  # Image load disabled again
   cache:
     max_entries: 20
     max_age:
