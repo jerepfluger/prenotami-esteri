@@ -24,6 +24,7 @@ class PassportAppointmentService:
     def schedule_multiple_passport_appointment(self, client_login_data, appointment_data):
         response = False
         try:
+            # FIXME: We're using here general appointment_configs instead of passport_appointment_configs
             self.driver = WebDriver().acquire(self.config.appointment_controller.webdriver_type)
             self.driver.maximize_window()
             self.driver.get('https://prenotami.esteri.it/')

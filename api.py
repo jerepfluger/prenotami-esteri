@@ -1,11 +1,10 @@
-from datetime import datetime, timedelta
 from threading import Thread
 
-from apscheduler.schedulers.background import BackgroundScheduler
 from flask import Flask, request
 
-from api import routes, run_unscheduled_appointment
+from api import routes
 from config.config import settings
+from service.task_scheduler_service import TaskSchedulerService
 
 app = Flask(__name__)
 app.register_blueprint(routes)
@@ -41,10 +40,6 @@ class Api(Thread):
 
 
 if __name__ == '__main__':
-    scheduler = BackgroundScheduler()
-    scheduler.add_job(run_unscheduled_appointment,next_run_time=datetime.strptime(datetime.now().strftime("%Y-%m-%d") + " 23:57:00", "%Y-%m-%d %H:%M:%S"))
-    scheduler.add_job(run_unscheduled_appointment, next_run_time=datetime.strptime((datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d") + " 00:07:00", "%Y-%m-%d %H:%M:%S"))
-    scheduler.start()
-
+    TaskSchedulerService().start()
     thread = Api()
     thread.run()
