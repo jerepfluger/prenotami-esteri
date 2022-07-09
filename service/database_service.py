@@ -1,6 +1,6 @@
 from dto.base_appointment import Appointment
 from dto.rest.login_credentials import LoginCredentials
-from dto.rest.multiple_passport_appointment import MultiplePassportAppointment
+from dto.rest.passport.multiple_passport_appointment import MultiplePassportAppointment
 from dto.rest.passport.multiple_passport_data import MultiplePassportAdditionalPeopleData, MultiplePassportData
 from helpers.logger import logger
 from repositories.appointment_repository import AppointmentRepository

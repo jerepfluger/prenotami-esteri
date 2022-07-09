@@ -4,12 +4,13 @@ import time
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
 from selenium.webdriver import Keys
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support.wait import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 
 from config.config import settings as config_file
 from helpers.logger import logger
 from helpers.retry_function import retry_on_exception
+from helpers.webdriver.find_element import find_element_by_id_and_send_keys, \
+    find_element_by_xpath_and_click_it_with_javascript, find_element_by_id_and_click_it_with_javascript
+from helpers.webdriver.waits import wait_presence_of_element_located_by_id, wait_presence_of_element_located_by_xpath
 from webdrivers.webdriver import WebDriver
 
 
@@ -29,33 +30,32 @@ class CitizenshipService:
         self.config = config_file.crawling
         self.unlimited_wait = unlimited_wait
 
-    def schedule_citizenship_appointment(self, login_credentials):
+    def schedule_citizenship_appointment(self, login_credentials, appointment_data):
         response = False
         try:
             # FIXME: We're using here general appointment_configs instead of citizenship_appointment_configs
+            logger.info('Creating browser')
             self.driver = WebDriver().acquire(self.config.appointment_controller.webdriver_type)
             self.driver.maximize_window()
             self.driver.get('https://prenotami.esteri.it/')
             self.log_in_user(login_credentials)
 
             # Waiting for user area page to be fully loaded
-            if self.unlimited_wait:
-                self._unlimited_wait_presence_of_element_located_by_id('advanced')
-            else:
-                WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.ID, 'advanced')), 'Timeout waiting after login in user')
-            self.search_for_available_appointment()
+            wait_presence_of_element_located_by_id(self.driver, 5, 'advanced', self.unlimited_wait,
+                                                   'Timeout waiting after login in user')
+
+            self.search_for_available_appointment(appointment_data)
 
             logger.info('Should be an available appointment. Start searching')
             self.select_available_appointment_or_raise_exception()
 
             # Accept appointment
             self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-            accept_appointment_button = self.driver.find_element(By.XPATH, './/button[contains(text(), "Reservar")]')
-            self.driver.execute_script("arguments[0].click();", accept_appointment_button)
+            find_element_by_xpath_and_click_it_with_javascript(self.driver, './/button[contains(text(), "Reservar")]')
             response = True
 
-            # Accept and close
-            WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.ID, 'btnStampa')))
+            # Wait until visibility of 'print' button
+            wait_presence_of_element_located_by_id(self.driver, 5, 'btnStampa')
 
             # TODO: We need to save this to send it to the client
             self.driver.save_full_page_screenshot()
@@ -72,48 +72,45 @@ class CitizenshipService:
     @retry_on_exception(5, retry_sleep_time=5)
     def log_in_user(self, client_login_data):
         # Waiting for login page to be fully loaded
-        if self.unlimited_wait:
-            self._unlimited_wait_presence_of_element_located_by_id('login-email')
-        else:
-            WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.ID, 'login-email')))
+        wait_presence_of_element_located_by_id(self.driver, 5, 'login-email', self.unlimited_wait,
+                                               'Unable to locate email input text')
         self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
         # Complete username field
-        logger.info('Logging user {}'.format(client_login_data.username))
-        username_input = self.driver.find_element(By.ID, 'login-email')
-        username_input.send_keys(client_login_data.username)
+        logger.info('Logging user {}'.format(client_login_data['username']))
+        find_element_by_id_and_send_keys(self.driver, 'login-email', [client_login_data['username']])
+
         # Complete password field
-        password_input = self.driver.find_element(By.ID, 'login-password')
-        password_input.send_keys(client_login_data.password)
-        password_input.send_keys(Keys.ENTER)
+        find_element_by_id_and_send_keys(self.driver, 'login-password', [client_login_data['password'], Keys.ENTER])
 
     @retry_on_exception(max_attempts=100, retry_sleep_time=5)
-    def search_for_available_appointment(self):
+    def search_for_available_appointment(self, appointment_data):
         self.driver.get('https://prenotami.esteri.it/Language/ChangeLanguage?lang=13')
-        if self.unlimited_wait:
-            self._unlimited_wait_presence_of_element_located_by_id('advanced')
-        else:
-            WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.ID, 'advanced')), 'Timeout waiting for language being set to spanish')
+        wait_presence_of_element_located_by_id(self.driver, 5, 'advanced', self.unlimited_wait,
+                                               'Timeout waiting for language being set to spanish')
+
         self.driver.get('https://prenotami.esteri.it/Services')
 
         # Waiting for prenotami tab to be fully loaded
-        if self.unlimited_wait:
-            self._unlimited_wait_presence_of_element_located_by_id('dataTableServices')
-        else:
-            WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.ID, 'dataTableServices')), 'Timeout waiting for appointment tab to be fully loaded')
+        wait_presence_of_element_located_by_id(self.driver, 5, 'dataTableServices', self.unlimited_wait,
+                                               'Timeout waiting for appointment tab to be fully loaded')
+
+        # FIXME: This thing need to be fixed. Needs to be more 'intelligent'
         sleep_if_necessary()
+
         logger.info('Selecting appointment type descendant citizenship')
         self.driver.get('https://prenotami.esteri.it/Services/Booking/340')
 
-        if self.unlimited_wait:
-            self._unlimited_wait_presence_of_element_located_by_id('PrivacyCheck')
-        else:
-            WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.ID, 'PrivacyCheck')), 'Timeout waiting for privacyCheck box to be present')
+        wait_presence_of_element_located_by_id(self.driver, 5, 'PrivacyCheck', self.unlimited_wait,
+                                               'Timeout waiting for privacyCheck box to be present')
 
-        privacy_check_box = self.driver.find_element(By.ID, 'PrivacyCheck')
-        self.driver.execute_script("arguments[0].click();", privacy_check_box)
+        # FIXME: Unfinished work here. Empty function body
+        self.complete_citizenship_appointment_data(appointment_data)
 
-        next_button = self.driver.find_element(By.ID, 'btnAvanti')
-        self.driver.execute_script("arguments[0].click();", next_button)
+        # Click privacy checkbox
+        find_element_by_id_and_click_it_with_javascript(self.driver, 'PrivacyCheck')
+
+        # Click next button
+        find_element_by_id_and_click_it_with_javascript(self.driver, 'btnAvanti')
 
         self.driver.switch_to.alert.accept()
 
@@ -122,12 +119,11 @@ class CitizenshipService:
 
     def check_calendar_or_raise_exception(self):
         try:
-            WebDriverWait(self.driver, 5).until(
-                EC.presence_of_element_located((By.XPATH, './/section[@class="calendario"]')))
+            wait_presence_of_element_located_by_xpath(self.driver, 5, './/section[@class="calendario"]')
         except TimeoutException:
             try:
-                ok_button = self.driver.find_element(By.XPATH, './/button[@class="btn btn-blue"]')
-                self.driver.execute_script("arguments[0].click();", ok_button)
+                # Click OK button
+                find_element_by_xpath_and_click_it_with_javascript(self.driver, './/button[@class="btn btn-blue"]')
             except NoSuchElementException:
                 pass
             logger.info('No appointments available')
@@ -139,11 +135,10 @@ class CitizenshipService:
             if loop > 25:
                 raise Exception('No appointments for next two years')
             try:
-                WebDriverWait(self.driver, 3).until(
-                    EC.presence_of_element_located((By.XPATH, './/td[@class="day availableDay"]')))
+                wait_presence_of_element_located_by_xpath(self.driver, 3, './/td[@class="day availableDay"]')
                 logger.info('Available appointment found!')
-                available_date = self.driver.find_element(By.XPATH, './/td[@class="day availableDay"]')
-                self.driver.execute_script("arguments[0].click();", available_date)
+                # Click DAY with available appointments (day marked in green)
+                find_element_by_xpath_and_click_it_with_javascript(self.driver, './/td[@class="day availableDay"]')
                 try:
                     available_appointment = self.driver.find_elements(By.XPATH, './/div[@class="dot "]')
                     self.driver.execute_script("arguments[0].click();", available_appointment)
@@ -156,24 +151,14 @@ class CitizenshipService:
             except TimeoutException:
                 try:
                     logger.info('Looking for appointments on Next Month')
-                    WebDriverWait(self.driver, 5).until(
-                        EC.presence_of_element_located((By.XPATH, './/span[@title="Next Month"]')))
-                    next_month_button = self.driver.find_element(By.XPATH, './/span[@title="Next Month"]')
-                    self.driver.execute_script("arguments[0].click();", next_month_button)
+                    wait_presence_of_element_located_by_xpath(self.driver, 5, './/span[@title="Next Month"]')
+                    # Click next month button
+                    find_element_by_xpath_and_click_it_with_javascript(self.driver, './/span[@title="Next Month"]')
                     loop += 1
                 except NoSuchElementException:
                     raise Exception('Unable to pick appointment')
                 except TimeoutException:
                     raise Exception('Timeout waiting for click NextMonth button')
 
-    def _unlimited_wait_presence_of_element_located_by_id(self, id_property_name):
-        page_fully_loaded = False
-        while True:
-            try:
-                page_fully_loaded = self.driver.execute_script('return document.readyState') == 'complete'
-                WebDriverWait(self.driver, 5, poll_frequency=1).until(EC.presence_of_element_located((By.ID, id_property_name)))
-                break
-            except TimeoutException:
-                if page_fully_loaded:
-                    raise Exception('Document fully loaded and element still unavailable')
-                pass
+    def complete_citizenship_appointment_data(self, appointment_data):
+        pass
