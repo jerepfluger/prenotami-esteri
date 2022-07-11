@@ -140,8 +140,10 @@ class CitizenshipService:
                 # Click DAY with available appointments (day marked in green)
                 find_element_by_xpath_and_click_it_with_javascript(self.driver, './/td[@class="day availableDay"]')
                 try:
-                    available_appointment = self.driver.find_elements(By.XPATH, './/div[@class="dot "]')
-                    self.driver.execute_script("arguments[0].click();", available_appointment)
+                    # Select first available appointment
+                    available_hours = self.driver.find_elements(By.XPATH, './/div[@class="dot "]')
+                    if len(available_hours) > 0:
+                        self.driver.execute_script("arguments[0].click();", available_hours[0])
                 except NoSuchElementException:
                     pass
                 # FIXME: Here we should have a logic in case there's more than one appointment for a given day

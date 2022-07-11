@@ -1,51 +1,82 @@
+import enum
+
+
+class MaritalStatus(enum.Enum):
+    CASADO_CASADA = 'Casado/a'
+    DIVORCIADO_DIVORCIADA = 'Divorciado/a'
+    VIUDO_VIUDA = 'Viudo/a'
+    SOLTERO_SOLTERA = 'Soltero/a'
+    SEPARADO_SEPARADA = 'Separado/a'
+    UNION_CIVIL = 'Unido/a civilmente'
+    SEPARADO_UNION_CIVIL = 'Separado/a de Un. Civ.'
+    DIVORCIADO_UNION_CIVIL = 'Divorciado/a de Un. Civ.'
+    VIUDO_UNION_CIVIL = 'Viudo/a de Un. Civ.'
+
+
+class ParentalRelationship(enum.Enum):
+    CONCUBINO = 'Concubino'
+    CONYUGE = 'Conyuge'
+    CONYUGE_DIVORCIADO = 'Conyuge divorciado'
+    CONYUGE_SEPARADO = 'Conyuge separado'
+    HERMANO_HERMANA = 'Hermano/Hermana'
+    HIJO_OTRO_CONYUGE = 'Hijo de otro conyuge'
+    HIJO_HIJA = 'Hijo/a'
+    MENOR_EN_TENENCIA = 'Menor en tenencia'
+    NIETO = 'Nieto'
+    PADRE_MADRE = 'Padre/Madre'
+    SUEGRO_SUEGRA = 'Suegro/Suegra'
+    YERNO_NUERA = 'Yerno/Nuera'
+
+
 def return_full_marital_status(marital_status):
     marital_status = marital_status.upper()
     if marital_status == 'CASADO' or marital_status == 'CASADA' or marital_status == 'CASADO/A':
-        return 'Casado/a'
+        return MaritalStatus.CASADO_CASADA
     if marital_status == 'DIVORCIADO' or marital_status == 'DIVORCIADA' or marital_status == 'DIVORCIADO/A':
-        return 'Divorciado/a'
+        return MaritalStatus.DIVORCIADO_DIVORCIADA
     if marital_status == 'VIUDO' or marital_status == 'VIUDA' or marital_status == 'VIUDO/A':
-        return 'Viudo/a'
+        return MaritalStatus.VIUDO_VIUDA
     if marital_status == 'SOLTERO' or marital_status == 'SOLTERA' or marital_status == 'SOLTERO/A':
-        return 'Soltero/a'
+        return MaritalStatus.SOLTERO_SOLTERA
     if marital_status == 'SEPARADO' or marital_status == 'SEPARADA' or marital_status == 'SEPARADO/A':
-        return 'Separado/a'
+        return MaritalStatus.SEPARADO_SEPARADA
     if marital_status == 'UNION CIVIL':
-        return 'Unido/a civilmente'
+        return MaritalStatus.UNION_CIVIL
     if marital_status == 'SEPARADO U/C' or marital_status == 'SEPARADA U/C' or marital_status == 'SEPARADO/A U/C':
-        return 'Separado/a de Un. Civ.'
+        return MaritalStatus.SEPARADO_UNION_CIVIL
     if marital_status == 'DIVORCIADO U/C' or marital_status == 'DIVORCIADA U/C' or marital_status == 'DIVORCIADO/A U/C':
-        return 'Divorciado/a de Un. Civ.'
+        return MaritalStatus.DIVORCIADO_UNION_CIVIL
     if marital_status == 'VIUDO U/C' or marital_status == 'VIUDA U/C' or marital_status == 'VIUDO/A U/C':
-        return 'Viudo/a de Un. Civ.'
+        return MaritalStatus.VIUDO_UNION_CIVIL
     raise Exception('Marital status not present in Prenotami availability list')
 
 
 def return_full_parental_relationship(parental_relationship):
-    if parental_relationship == 'Concubino':
-        return 'Concubino'
-    if parental_relationship == 'Conyuge':
-        return 'Conyuge'
-    if parental_relationship == 'Conyuge divorciado':
-        return 'Conyuge divorciado'
-    if parental_relationship == 'Conyuge separado':
-        return 'Conyuge separado'
-    if parental_relationship == 'Hermano' or parental_relationship == 'Hermana' or parental_relationship == 'Hermano/Hermana':
-        return 'Hermano/Hermana'
-    if parental_relationship == 'Hijo de otro conyuge':
-        return 'Hijo de otro conyuge'
-    if parental_relationship == 'Hijo' or parental_relationship == 'Hija' or parental_relationship == 'Hijo/a':
-        return 'Hijo/a'
-    if parental_relationship == 'Menor en tenencia':
-        return 'Menor en tenencia'
-    if parental_relationship == 'Nieto':
-        return 'Nieto'
-    if parental_relationship == 'Padre' or parental_relationship == 'Madre' or parental_relationship == 'Padre/Madre':
-        return 'Padre/Madre'
-    if parental_relationship == 'Suegro' or parental_relationship == 'Suegra' or parental_relationship == 'Suegro/Suegra':
-        return 'Suegro/Suegra'
-    if parental_relationship == 'Yerno' or parental_relationship == 'Nuera' or parental_relationship == 'Yerno/Nuera':
-        return 'Yerno/Nuera'
+    relationship = parental_relationship.upper()
+    if relationship == 'CONCUBINO':
+        return ParentalRelationship.CONCUBINO
+    if relationship == 'CONYUGE':
+        return ParentalRelationship.CONYUGE
+    if relationship == 'CONYUGE DIVORCIADO':
+        return ParentalRelationship.CONYUGE_DIVORCIADO
+    if relationship == 'CONYUGE SEPARADO':
+        return ParentalRelationship.CONYUGE_SEPARADO
+    if relationship == 'HERMANO' or relationship == 'HERMANA' or relationship == 'HERMANO/HERMANA':
+        return ParentalRelationship.HERMANO_HERMANA
+    if relationship == 'HIJO DE OTRO CONYUGE':
+        return ParentalRelationship.HIJO_OTRO_CONYUGE
+    if relationship == 'HIJO' or relationship == 'HIJA' or relationship == 'HIJO/A':
+        return ParentalRelationship.HIJO_HIJA
+    if relationship == 'MENOR EN TENENCIA':
+        return ParentalRelationship.MENOR_EN_TENENCIA
+    if relationship == 'NIETO':
+        return ParentalRelationship.NIETO
+    if relationship == 'PADRE' or relationship == 'MADRE' or relationship == 'PADRE/MADRE':
+        return ParentalRelationship.PADRE_MADRE
+    if relationship == 'SUEGRO' or relationship == 'SUEGRA' or relationship == 'SUEGRO/SUEGRA':
+        return ParentalRelationship.SUEGRO_SUEGRA
+    if relationship == 'YERNO' or relationship == 'NUERA' or relationship == 'YERNO/NUERA':
+        return ParentalRelationship.YERNO_NUERA
     raise Exception('Parental relationship not present in Prenotami availability list')
 
 

@@ -1,9 +1,7 @@
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
 from selenium.webdriver import Keys
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.select import Select
-from selenium.webdriver.support.wait import WebDriverWait
 
 from config.config import settings as config_file
 from helpers.logger import logger
@@ -11,7 +9,8 @@ from helpers.retry_function import retry_on_exception
 from helpers.sanitizers import return_full_marital_status, return_full_parental_relationship
 from helpers.webdriver.find_element import find_element_by_xpath_and_click_it_with_javascript, \
     find_element_by_id_and_send_keys, find_element_by_id_and_click_it_with_javascript
-from helpers.webdriver.waits import wait_presence_of_element_located_by_id, wait_presence_of_element_located_by_xpath
+from helpers.webdriver.waits import wait_presence_of_element_located_by_id, wait_presence_of_element_located_by_xpath, \
+    wait_visibility_of_element_located_by_xpath
 from repositories.multiple_passport_appointment_repository import MultiplePassportAppointmentRepository
 from service.database_service import DatabaseService
 from webdrivers.webdriver import WebDriver
@@ -36,7 +35,8 @@ class PassportAppointmentService:
             logger.info('User logged in successfully')
 
             # Waiting for user area page to be fully loaded
-            wait_presence_of_element_located_by_id(self.driver, 5, 'advanced', message='Timeout waiting after login in user')
+            wait_presence_of_element_located_by_id(self.driver, 5, 'advanced',
+                                                   message='Timeout waiting after login in user')
             self.search_for_available_appointment(appointment_data)
 
             logger.info('Should be an available appointment. Start searching')
@@ -89,8 +89,7 @@ class PassportAppointmentService:
         self.driver.get('https://prenotami.esteri.it/Services/Booking/104')
         self.raise_exception_on_non_available_appointment_warning_presence()
 
-        logger.info('Completing appointment data')
-        self.complete_multiple_passport_appointment_data(appointment_data)
+        self.complete_appointment_data(appointment_data)
 
         # Click privacy check button
         logger.info('Clicking privacy check box')
@@ -116,8 +115,10 @@ class PassportAppointmentService:
                 logger.info('Available appointment found!')
                 find_element_by_xpath_and_click_it_with_javascript(self.driver, './/td[@class="day availableDay"]')
                 try:
-                    # Select available appointment
-                    find_element_by_xpath_and_click_it_with_javascript(self.driver, './/div[@class="dot "]')
+                    # Select first available appointment
+                    available_hours = self.driver.find_elements(By.XPATH, './/div[@class="dot "]')
+                    if len(available_hours) > 0:
+                        self.driver.execute_script("arguments[0].click();", available_hours[0])
                 except NoSuchElementException:
                     pass
                 break
@@ -147,9 +148,10 @@ class PassportAppointmentService:
 
     def complete_multiple_passport_appointment_data(self, appointment_data):
         # Waiting for appointment page to be fully loaded
-        WebDriverWait(self.driver, 5).until(EC.visibility_of_element_located(
-            (By.XPATH, './/select[@id="typeofbookingddl"]/option[text()="Reserva multiple"]')))
+        wait_visibility_of_element_located_by_xpath(self.driver, 5,
+                                                    './/select[@id="typeofbookingddl"]/option[text()="Reserva multiple"]')
 
+        logger.info('Completing appointment data')
         # Select multiple appointment dropdown menu option
         find_element_by_id_and_send_keys(self.driver, 'typeofbookingddl', [Keys.ARROW_DOWN, 'Reserva multiple'])
 
@@ -163,32 +165,32 @@ class PassportAppointmentService:
         additional_people_input.select_by_visible_text(str(len(appointment_data['additional_people_data'])))
 
         # Fill address input
-        find_element_by_id_and_send_keys(self.driver, 'DatiAddizionaliPrenotante_0___testo', [appointment_data['address']])
+        find_element_by_id_and_send_keys(self.driver, 'DatiAddizionaliPrenotante_0___testo',
+                                         [appointment_data['address']])
 
         # FIXME: We need to set a validator for this option
-        WebDriverWait(self.driver, 5).until(EC.visibility_of_element_located(
-            (By.XPATH,
-             './/select[@id="ddls_1"]/option[text()="{}"]'.format(appointment_data['have_kids'].capitalize()))),
-            message='Unable to locate have_kids selector')
+        wait_visibility_of_element_located_by_xpath(self.driver, 5,
+                                                    './/select[@id="ddls_1"]/option[text()="{}"]'.format(
+                                                        appointment_data['have_kids'].capitalize()),
+                                                    message='Unable to locate have_kids selector')
         # Open 'have kids' dropdown menu
         find_element_by_id_and_send_keys(self.driver, 'ddls_1', [Keys.ARROW_DOWN])
         # FIXME: Here I should have a new method which allows me to use 'Select' functionality
         have_kids_select = Select(self.driver.find_element(By.ID, 'ddls_1'))
         have_kids_select.select_by_visible_text(appointment_data['have_kids'].capitalize())
 
-        WebDriverWait(self.driver, 5).until(EC.visibility_of_element_located(
-            (By.XPATH, './/select[@id="ddls_2"]/option[text()="{}"]'.format(
-                return_full_marital_status(appointment_data['marital_status'])))))
+        wait_visibility_of_element_located_by_xpath(self.driver, 5,
+                                                    './/select[@id="ddls_2"]/option[text()="{}"]'.format(
+                                                        return_full_marital_status(appointment_data['marital_status'])))
         # Open 'marital status' dropdown menu
         find_element_by_id_and_send_keys(self.driver, 'ddls_2', [Keys.ARROW_DOWN])
         # FIXME: Here I should have a new method which allows me to use 'Select' functionality
         marital_status_select = Select(self.driver.find_element(By.ID, 'ddls_2'))
         marital_status_select.select_by_visible_text(return_full_marital_status(appointment_data['marital_status']))
 
-        WebDriverWait(self.driver, 5).until(EC.visibility_of_element_located(
-            (By.XPATH,
-             './/select[@id="ddls_3"]/option[text()="{}"]'.format(
-                 appointment_data['own_expired_passport'].capitalize()))))
+        wait_visibility_of_element_located_by_xpath(self.driver, 5,
+                                                    './/select[@id="ddls_3"]/option[text()="{}"]'.format(
+                                                        appointment_data['own_expired_passport'].capitalize()))
         # Open 'expired passport' dropdown menu
         find_element_by_id_and_send_keys(self.driver, 'ddls_3', [Keys.ARROW_DOWN])
         # FIXME: Here I should have a new method which allows me to use 'Select' functionality
@@ -196,7 +198,8 @@ class PassportAppointmentService:
         have_expired_passport_select.select_by_visible_text(appointment_data['own_expired_passport'].capitalize())
 
         # Fill minor kids amount input
-        find_element_by_id_and_send_keys(self.driver, 'DatiAddizionaliPrenotante_4___testo', [appointment_data['minor_kids_amount']])
+        find_element_by_id_and_send_keys(self.driver, 'DatiAddizionaliPrenotante_4___testo',
+                                         [appointment_data['minor_kids_amount']])
 
         for index, companion_data in enumerate(appointment_data['additional_people_data']):
             # Fill lastname input
@@ -209,9 +212,10 @@ class PassportAppointmentService:
             find_element_by_id_and_send_keys(self.driver, 'Accompagnatori_{}__DataNascitaAccompagnatore'.format(index),
                                              [companion_data['date_of_birth']])
 
-            WebDriverWait(self.driver, 5).until(EC.visibility_of_element_located(
-                (By.XPATH, './/select[@id="TypeOfRelationDDL{}"]/option[text()="{}"]'
-                 .format(index, return_full_parental_relationship(companion_data['relationship'])))))
+            wait_visibility_of_element_located_by_xpath(self.driver, 5,
+                                                        './/select[@id="TypeOfRelationDDL{}"]/option[text()="{}"]'
+                                                        .format(index, return_full_parental_relationship(
+                                                            companion_data['relationship'])))
             # Open 'parental relationship' dropdown menu
             find_element_by_id_and_send_keys(self.driver, 'TypeOfRelationDDL{}'.format(index), [Keys.ARROW_DOWN])
             # FIXME: Here I should have a new method which allows me to use 'Select' functionality
@@ -220,18 +224,19 @@ class PassportAppointmentService:
             parental_relationship_select.select_by_visible_text(
                 return_full_parental_relationship(companion_data['relationship']))
 
-            WebDriverWait(self.driver, 5).until(EC.visibility_of_element_located(
-                (By.XPATH, './/select[@id="ddlsAcc_{}_0"]/option[text()="{}"]'
-                 .format(index, companion_data['have_kids'].capitalize()))))
+            wait_visibility_of_element_located_by_xpath(self.driver, 5,
+                                                        './/select[@id="ddlsAcc_{}_0"]/option[text()="{}"]'
+                                                        .format(index, companion_data['have_kids'].capitalize()))
             # Open 'have kids' dropdwon menu
             find_element_by_id_and_send_keys(self.driver, 'ddlsAcc_{}_0'.format(index), [Keys.ARROW_DOWN])
             # FIXME: Here I should have a new method which allows me to use 'Select' functionality
             have_kids_select = Select(self.driver.find_element(By.ID, 'ddlsAcc_{}_0'.format(index)))
             have_kids_select.select_by_visible_text(companion_data['have_kids'].capitalize())
 
-            WebDriverWait(self.driver, 5).until(EC.visibility_of_element_located(
-                (By.XPATH, './/select[@id="ddlsAcc_{}_1"]/option[text()="{}"]'
-                 .format(index, return_full_marital_status(companion_data['marital_status'])))))
+            wait_visibility_of_element_located_by_xpath(self.driver, 5,
+                                                        './/select[@id="ddlsAcc_{}_1"]/option[text()="{}"]'
+                                                        .format(index, return_full_marital_status(
+                                                            companion_data['marital_status'])))
             # Open 'marital status' dropdown menu
             find_element_by_id_and_send_keys(self.driver, 'ddlsAcc_{}_1'.format(index), [Keys.ARROW_DOWN])
             # FIXME: Here I should have a new method which allows me to use 'Select' functionality
@@ -240,8 +245,9 @@ class PassportAppointmentService:
                 return_full_marital_status(companion_data['marital_status']))
 
             # Fill address input
-            find_element_by_id_and_send_keys(self.driver, 'Accompagnatori_{}__DatiAddizionaliAccompagnatore_2___testo'.format(
-                                                         index), [companion_data['address']])
+            find_element_by_id_and_send_keys(self.driver,
+                                             'Accompagnatori_{}__DatiAddizionaliAccompagnatore_2___testo'.format(
+                                                 index), [companion_data['address']])
 
     def save_multiple_passport_appointment(self, data):
         credentials = self.database_service.get_user_credentials(data.client_login['username'])
@@ -253,7 +259,17 @@ class PassportAppointmentService:
 
     def raise_exception_on_non_available_appointment_warning_presence(self):
         try:
-            self.driver.find_element(By.XPATH, './/div[text()="Al momento non ci sono date disponibili per il servizio richiesto"]')
+            wait_presence_of_element_located_by_xpath(self.driver, 1, './/div[text()="Al momento non ci sono date disponibili per il servizio richiesto"]')
             raise Exception('Non available appointments warning detected')
         except NoSuchElementException:
             pass
+
+    def complete_appointment_data(self, appointment_data):
+        if appointment_data.get('additional_people_data', None):
+            if len(appointment_data.get('additional_people_data')) > 0:
+                return self.complete_multiple_passport_appointment_data(appointment_data)
+
+        return self.complete_simple_passport_appointment_data(appointment_data)
+
+    def complete_simple_passport_appointment_data(self, appointment_data):
+        pass
