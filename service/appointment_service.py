@@ -324,7 +324,7 @@ class AppointmentService:
         marital_status_input.select_by_visible_text(return_full_marital_status(appointment_data['marital_status']))
 
     def complete_appointment_details(self, appointment_data):
-        appointment_data = appointment_data.upper()
+        appointment_data = appointment_data['appointment_type'].upper()
         if appointment_data['appointment_type'] == 'PASAPORTE':
             self.complete_passport_appointment_data(appointment_data)
         if appointment_data['appointment_type'] == 'CIUDADANIA PADRES':
