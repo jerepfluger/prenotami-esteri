@@ -4,7 +4,7 @@ from http import HTTPStatus
 from flask import Response as FlaskResponse
 from flask import request
 
-from dto.rest.multiple_passport_appointment import MultiplePassportAppointment
+from dto.rest.passport.multiple_passport_appointment import MultiplePassportAppointment
 from dto.rest.response import Response
 from helpers.logger import logger
 from service.database_service import DatabaseService
