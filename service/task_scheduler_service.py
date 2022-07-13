@@ -18,6 +18,8 @@ class TaskSchedulerService:
         self.scheduler.add_job(schedule_manual_run, next_run_time=today_run)
         self.scheduler.add_job(schedule_manual_run, next_run_time=tomorrow_run)
 
+    # TODO: Here I should have some extra schedulers for passports appoitments and other stuff
+
     def start(self):
         self.add_citizenship_tasks()
         self.scheduler.start()

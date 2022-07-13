@@ -12,6 +12,7 @@ from helpers.sanitizers import return_full_marital_status, return_full_parental_
     sanitize_appointment_reason
 from helpers.webdriver.find_element import find_element_by_xpath_and_click_it_with_javascript, \
     find_element_by_id_and_send_keys, find_element_by_id_and_click_it_with_javascript
+from helpers.webdriver.select_element import select_element_by_visible_text_and_id
 from helpers.webdriver.waits import wait_presence_of_element_located_by_id, wait_presence_of_element_located_by_xpath, \
     wait_visibility_of_element_located_by_xpath
 from repositories.appointment_repository import AppointmentRepository
@@ -108,7 +109,7 @@ class AppointmentService:
         loop = 0
         while True:
             if loop > 25:
-                raise Exception('No appointments for next year')
+                raise Exception('No appointments for next two years')
             try:
                 wait_presence_of_element_located_by_xpath(self.driver, 3, './/td[@class="day availableDay"]')
                 logger.info('Available appointment found!')
@@ -179,9 +180,8 @@ class AppointmentService:
 
             # Select amount of additional people
             find_element_by_id_and_send_keys(self.driver, 'ddlnumberofcompanions', [Keys.ARROW_DOWN])
-            # FIXME: Here I should have a new method which allows me to use 'Select' functionality
-            additional_people_input = Select(self.driver.find_element(By.ID, 'ddlnumberofcompanions'))
-            additional_people_input.select_by_visible_text(str(appointment_data['additional_people_amount']))
+            select_element_by_visible_text_and_id(self.driver, 'ddlnumberofcompanions',
+                                                  str(appointment_data['additional_people_amount']))
 
         # Complete address information
         find_element_by_id_and_send_keys(self.driver, 'DatiAddizionaliPrenotante_0___testo',
@@ -191,29 +191,25 @@ class AppointmentService:
         wait_visibility_of_element_located_by_xpath(self.driver, 5,
                                                     './/select[@id="ddls_1"]/option[text()="{}"]'.format(
                                                         appointment_data['have_kids'].capitalize()))
-        # Open 'Have kids' dropdown menu
+        # Open 'Have kids' dropdown menu and select option
         find_element_by_id_and_send_keys(self.driver, 'ddls_1', [Keys.ARROW_DOWN])
-        # FIXME: Here I should have a new method which allows me to use 'Select' functionality
-        have_kids_select = Select(self.driver.find_element(By.ID, 'ddls_1'))
-        have_kids_select.select_by_visible_text(appointment_data['have_kids'].capitalize())
+        select_element_by_visible_text_and_id(self.driver, 'ddls_1', appointment_data['have_kids'].capitalize())
 
         wait_visibility_of_element_located_by_xpath(self.driver, 5,
                                                     './/select[@id="ddls_2"]/option[text()="{}"]'.format(
                                                         return_full_marital_status(appointment_data['marital_status'])))
-        # Open 'Marital status' dropdown menu
+        # Open 'Marital status' dropdown menu and select option
         find_element_by_id_and_send_keys(self.driver, 'ddls_2', [Keys.ARROW_DOWN])
-        # FIXME: Here I should have a new method which allows me to use 'Select' functionality
-        marital_status_select = Select(self.driver.find_element(By.ID, 'ddls_2'))
-        marital_status_select.select_by_visible_text(return_full_marital_status(appointment_data['marital_status']))
+        select_element_by_visible_text_and_id(self.driver, 'ddls_2',
+                                              return_full_marital_status(appointment_data['marital_status']))
 
         wait_visibility_of_element_located_by_xpath(self.driver, 5,
                                                     './/select[@id="ddls_3"]/option[text()="{}"]'.format(
                                                         appointment_data['is_passport_expired'].capitalize()))
-        # Open 'Expired passport' dropdown menu
+        # Open 'Expired passport' dropdown menu and select option
         find_element_by_id_and_send_keys(self.driver, 'ddls_3', [Keys.ARROW_DOWN])
-        # FIXME: Here I should have a new method which allows me to use 'Select' functionality
-        have_expired_passport_select = Select(self.driver.find_element(By.ID, 'ddls_3'))
-        have_expired_passport_select.select_by_visible_text(appointment_data['is_passport_expired'].capitalize())
+        select_element_by_visible_text_and_id(self.driver, 'ddls_3',
+                                              appointment_data['is_passport_expired'].capitalize())
 
         # Complete minor kids amount field
         find_element_by_id_and_send_keys(self.driver, 'DatiAddizionaliPrenotante_4___testo',
@@ -236,22 +232,18 @@ class AppointmentService:
                                                             './/select[@id="TypeOfRelationDDL{}"]/option[text()="{}"]'
                                                             .format(index, return_full_parental_relationship(
                                                                 companion_data['relationship'])))
-                # Open 'parental relationship' dropdown menu
+                # Open 'parental relationship' dropdown menu and select option
                 find_element_by_id_and_send_keys(self.driver, 'TypeOfRelationDDL{}'.format(index), [Keys.ARROW_DOWN])
-                # FIXME: Here I should have a new method which allows me to use 'Select' functionality
-                parental_relationship_select = Select(
-                    self.driver.find_element(By.ID, 'TypeOfRelationDDL{}'.format(index)))
-                parental_relationship_select.select_by_visible_text(
-                    return_full_parental_relationship(companion_data['relationship']))
+                select_element_by_visible_text_and_id(self.driver, 'TypeOfRelationDDL{}'.format(index),
+                                                      return_full_parental_relationship(companion_data['relationship']))
 
                 wait_visibility_of_element_located_by_xpath(self.driver, 5,
                                                             './/select[@id="ddlsAcc_{}_0"]/option[text()="{}"]'
                                                             .format(index, companion_data['have_kids'].capitalize()))
-                # Open 'have kids' dropdown menu
+                # Open 'have kids' dropdown menu and select option
                 find_element_by_id_and_send_keys(self.driver, 'ddlsAcc_{}_0'.format(index), [Keys.ARROW_DOWN])
-                # FIXME: Here I should have a new method which allows me to use 'Select' functionality
-                have_kids_select = Select(self.driver.find_element(By.ID, 'ddlsAcc_{}_0'.format(index)))
-                have_kids_select.select_by_visible_text(companion_data['have_kids'].capitalize())
+                select_element_by_visible_text_and_id(self.driver, 'ddlsAcc_{}_0'.format(index),
+                                                      companion_data['have_kids'].capitalize())
 
                 wait_visibility_of_element_located_by_xpath(self.driver, 5,
                                                             './/select[@id="ddlsAcc_{}_1"]/option[text()="{}"]'
@@ -259,10 +251,8 @@ class AppointmentService:
                                                                 companion_data['marital_status'])))
                 # Open 'marital status' dropdown menu
                 find_element_by_id_and_send_keys(self.driver, 'ddlsAcc_{}_1'.format(index), [Keys.ARROW_DOWN])
-                # FIXME: Here I should have a new method which allows me to use 'Select' functionality
-                marital_status_select = Select(self.driver.find_element(By.ID, 'ddlsAcc_{}_1'.format(index)))
-                marital_status_select.select_by_visible_text(
-                    return_full_marital_status(companion_data['marital_status']))
+                select_element_by_visible_text_and_id(self.driver, 'ddlsAcc_{}_1'.format(index),
+                                                      return_full_marital_status(companion_data['marital_status']))
 
                 # Fill address input
                 find_element_by_id_and_send_keys(self.driver,
