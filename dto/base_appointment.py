@@ -15,7 +15,8 @@ class AdditionalPeopleData:
 class Appointment:
     def __init__(self, username, password, appointment_type, address, have_kids, marital_status, is_passport_expired,
                  amount_minor_kids, passport_expiry_date, travel_reason, height, zip_code, other_citizenship,
-                 multiple_appointment, additional_people_amount, additional_people_data: List[AdditionalPeopleData]):
+                 multiple_appointment, additional_people_amount, additional_people_data: List[AdditionalPeopleData],
+                 unlimited_wait=False):
         self.username = username
         self.password = password
         self.appointment_type = appointment_type
@@ -32,3 +33,4 @@ class Appointment:
         self.multiple_appointment = multiple_appointment
         self.additional_people_amount = additional_people_amount
         self.additional_people_data = additional_people_data
+        self.unlimited_wait = unlimited_wait

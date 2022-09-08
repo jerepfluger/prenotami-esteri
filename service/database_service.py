@@ -1,7 +1,7 @@
 from dto.base_appointment import Appointment
 from dto.rest.login_credentials import LoginCredentials
-from dto.rest.passport.multiple_passport_appointment import MultiplePassportAppointment
-from dto.rest.passport.multiple_passport_data import MultiplePassportAdditionalPeopleData, MultiplePassportData
+from dto.rest.passport.multiple_passport_appointment import PassportAppointment
+from dto.rest.passport.multiple_passport_data import PassportAdditionalPeopleData, PassportData
 from helpers.logger import logger
 from repositories.appointment_repository import AppointmentRepository
 from repositories.login_credentials_repository import LoginCredentialsRepository
@@ -15,14 +15,14 @@ def complete_multiple_passport_appointment_data(credentials, appointment, people
     additional_people_data = []
     for person in people_data:
         additional_people_data.append(
-            MultiplePassportAdditionalPeopleData(person.last_name, person.first_name, person.date_of_birth,
-                                                 person.relationship, person.have_kids, person.marital_status,
-                                                 person.address))
-    multiple_passport_data = MultiplePassportData(appointment.address, appointment.have_kids,
-                                                  appointment.marital_status, appointment.own_expired_passport,
-                                                  appointment.minor_kids_amount, additional_people_data,
-                                                  appointment.additional_notes)
-    return MultiplePassportAppointment(login_credentials, multiple_passport_data)
+            PassportAdditionalPeopleData(person.last_name, person.first_name, person.date_of_birth,
+                                         person.relationship, person.have_kids, person.marital_status,
+                                         person.address))
+    multiple_passport_data = PassportData(appointment.address, appointment.have_kids,
+                                          appointment.marital_status, appointment.own_expired_passport,
+                                          appointment.minor_kids_amount, additional_people_data,
+                                          appointment.additional_notes)
+    return PassportAppointment(login_credentials, multiple_passport_data)
 
 
 class DatabaseService:

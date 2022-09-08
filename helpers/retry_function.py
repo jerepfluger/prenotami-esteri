@@ -44,11 +44,11 @@ def retry_on_exception(max_attempts=0, exception_on_error: Exception = None, ret
                     return result
                 except Exception as ex:
                     if isinstance(ex, TimeoutException):
-                        logger.error("Retrying function {} ({} retries remaining). Exception: {}. Sleeping for 1 sec"
-                                    .format(name, max_attempts - retry_count - 1, ex.__dict__['msg']))
+                        logger.error("Retrying function {} ({} retries remaining). Exception: {}. Sleeping for {} sec"
+                                    .format(name, max_attempts - retry_count - 1, ex.__dict__['msg'], retry_sleep_time))
                     else:
-                        logger.error("Retrying function {} ({} retries remaining). Exception: {}. Sleeping for 1 sec"
-                                    .format(name, max_attempts - retry_count - 1, ex))
+                        logger.error("Retrying function {} ({} retries remaining). Exception: {}. Sleeping for {} sec"
+                                    .format(name, max_attempts - retry_count - 1, ex, retry_sleep_time))
                     time.sleep(retry_sleep_time)
                     last_ex = ex
             last_ex = last_ex or exception_on_error

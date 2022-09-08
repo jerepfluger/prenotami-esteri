@@ -6,6 +6,15 @@ from helpers.logger import logger
 from helpers.webdriver.config_helper import retrieve_firefox_binary_path_based_on_os, retrieve_chrome_binary_path_based_on_os
 
 
+class SafariWebdriver:
+    @staticmethod
+    def create(proxy=None):
+        logger.info('Creating Safari Web Driver')
+        options = webdriver.safari.options.Options()
+        options.add_argument('headless')
+        return webdriver.Safari()
+
+
 class ChromeWebdriver:
     @staticmethod
     def create(proxy=None):
@@ -21,10 +30,14 @@ class ChromeWebdriver:
         options.add_argument('disable-infobars')
         # Disable web security for get ember components via execute-scripts
         options.add_argument('disable-web-security')
+        desired_capabilities = webdriver.DesiredCapabilities.CHROME
+        # This flag is supposed to help pages to load complete on slow traffic site without breaking
+        desired_capabilities['pageLoadStrategy'] = 'normal'
+
         if proxy:
             options.add_argument('proxy-server={}:{}'.format(proxy.host, proxy.port))
 
-        return webdriver.Chrome(chrome_options=options)
+        return webdriver.Chrome(desired_capabilities=desired_capabilities, chrome_options=options)
 
 
 class FirefoxWebdriver:
@@ -40,32 +53,38 @@ class FirefoxWebdriver:
 
         for item in settings.web_driver.firefox.options:
             options.set_preference(item, settings.web_driver.firefox.options[item])
+        desired_capabilities = webdriver.DesiredCapabilities.FIREFOX
+        # This flag is supposed to help pages to load complete on slow traffic site without breaking
+        desired_capabilities['pageLoadStrategy'] = 'normal'
 
         # Proxy
         if proxy:
             logger.info('Setting proxy values to http {} and port {}'.format(proxy.host, proxy.port))
-            firefox_capabilities = webdriver.DesiredCapabilities.FIREFOX
             firefox_proxy = '{}:{}'.format(proxy.host, proxy.port)
-            firefox_capabilities['proxy'] = {
+            desired_capabilities['proxy'] = {
                 'proxyType': 'MANUAL',
                 'httpProxy': firefox_proxy,
                 'ftpProxy': firefox_proxy,
                 'sslProxy': firefox_proxy
             }
 
-            return webdriver.Firefox(options=options, log_path='/dev/null',
-                                     capabilities=firefox_capabilities)
-
         return webdriver.Firefox(options=options, log_path='/dev/null',
-                                 service_log_path='/dev/null')
+                                 service_log_path='/dev/null', capabilities=desired_capabilities)
 
 
 class WebDriver:
     def __init__(self):
-        self.web_driver_creators = {'firefox': FirefoxWebdriver.create, 'chromium': ChromeWebdriver.create}
+        self.web_driver_creators = {'firefox': FirefoxWebdriver.create, 'chromium': ChromeWebdriver.create, 'safari': SafariWebdriver.create}
 
     def acquire(self, webdriver_type, proxy=None):
         if webdriver_type in self.web_driver_creators:
-            return self.web_driver_creators[webdriver_type](proxy)
+            driver = self.web_driver_creators[webdriver_type](proxy)
+            # driver.manage.add_cookie({
+            #     "name": "_pk_id.E1e0Ge2p6l.5f67",
+            #     "value": "c67d2105305eaa76.1651824477.12.1652365938.1652362483.",
+            #     "path": "/",
+            #     "domain": "prenotami.esteri.it"
+            # })
 
+            return driver
         return None

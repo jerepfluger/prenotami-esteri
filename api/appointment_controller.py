@@ -56,7 +56,7 @@ def schedule_appointment():
 def schedule_appointment_internal(data):
     logger.info('Beginning scheduling appointment process')
     # FIXME: Sanitize data here
-    success = AppointmentService().schedule_generic_appointment(data)
+    success = AppointmentService(data['unlimited_wait']).schedule_generic_appointment(data)
     if not success:
         response = Response('failed', 'Unable to schedule the appointment')
         return FlaskResponse(json.dumps(response.__dict__), status=HTTPStatus.NOT_FOUND)
