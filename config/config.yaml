@@ -4,8 +4,8 @@ api:
 context: "local"
 
 web_driver:
-  chrome_binary: "/Applications/Chromium.app/Contents/MacOS/Chromium"
-  firefox_binary: "/Applications/Firefox.app/Contents/MacOS/firefox-bin"
+  chrome_binary: "/usr/bin/chromium-browser"
+  firefox_binary: "/usr/bin/firefox"
   chromium:
     cache_dir: "/tmp/chromium/cache-dir"
     data_path: "/tmp/chromium/data-path"
