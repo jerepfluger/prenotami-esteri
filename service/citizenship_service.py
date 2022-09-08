@@ -8,6 +8,7 @@ from selenium.webdriver.common.by import By
 from config.config import settings as config_file
 from helpers.logger import logger
 from helpers.retry_function import retry_on_exception
+from helpers.save_html_content_to_file import save_html_content_to_file
 from helpers.webdriver.find_element import find_element_by_id_and_send_keys, \
     find_element_by_xpath_and_click_it_with_javascript, find_element_by_id_and_click_it_with_javascript
 from helpers.webdriver.waits import wait_presence_of_element_located_by_id, wait_presence_of_element_located_by_xpath
@@ -25,7 +26,7 @@ def sleep_if_necessary():
 
 
 class CitizenshipService:
-    def __init__(self, unlimited_wait=False):
+    def __init__(self, unlimited_wait):
         self.driver = None
         self.config = config_file.crawling
         self.unlimited_wait = unlimited_wait
@@ -35,7 +36,7 @@ class CitizenshipService:
         try:
             # FIXME: We're using here general appointment_configs instead of citizenship_appointment_configs
             logger.info('Creating browser')
-            self.driver = WebDriver().acquire(self.config.appointment_controller.webdriver_type)
+            self.driver = WebDriver().acquire(self.config.citizenship_controller.webdriver_type)
             self.driver.maximize_window()
             self.driver.get('https://prenotami.esteri.it/')
             self.log_in_user(login_credentials)
@@ -99,9 +100,15 @@ class CitizenshipService:
 
         logger.info('Selecting appointment type descendant citizenship')
         self.driver.get('https://prenotami.esteri.it/Services/Booking/340')
+        self.raise_exception_on_non_available_appointment_warning_presence()
 
         wait_presence_of_element_located_by_id(self.driver, 5, 'PrivacyCheck', self.unlimited_wait,
                                                'Timeout waiting for privacyCheck box to be present')
+
+
+        # Saving html information in case anything fails we'll have a backup
+        filename = 'citizenship_service_form#{}'.format(datetime.datetime.now().strftime("%Y-%m-%d"))
+        save_html_content_to_file(self.driver.page_source, filename, 'html', '/tmp/prenotami-esteri/htmls')
 
         # FIXME: Unfinished work here. Empty function body
         self.complete_citizenship_appointment_data(appointment_data)
@@ -135,6 +142,11 @@ class CitizenshipService:
             if loop > 25:
                 raise Exception('No appointments for next two years')
             try:
+                if loop == 0:
+                    # Saving html information in case anything fails we'll have a backup
+                    filename = 'citizenship_service_calendar#{}'.format(datetime.datetime.now().strftime("%Y-%m-%d"))
+                    save_html_content_to_file(self.driver.page_source, filename, 'html', '/tmp/prenotami-esteri/htmls')
+
                 wait_presence_of_element_located_by_xpath(self.driver, 3, './/td[@class="day availableDay"]')
                 logger.info('Available appointment found!')
                 # Click DAY with available appointments (day marked in green)
@@ -146,9 +158,6 @@ class CitizenshipService:
                         self.driver.execute_script("arguments[0].click();", available_hours[0])
                 except NoSuchElementException:
                     pass
-                # FIXME: Here we should have a logic in case there's more than one appointment for a given day
-                #  then we should be able to pick one of them (the first available) or step into the next availableDay
-                #  selector for multiple appointments for a day is self.driver.find_elements(By.XPATH, './/div[@class="dot "]')
                 break
             except TimeoutException:
                 try:
@@ -164,3 +173,11 @@ class CitizenshipService:
 
     def complete_citizenship_appointment_data(self, appointment_data):
         pass
+
+    def raise_exception_on_non_available_appointment_warning_presence(self):
+        try:
+            wait_presence_of_element_located_by_xpath(self.driver, 10,
+                                                      './/div[text()="Al momento non ci sono date disponibili per il servizio richiesto"]')
+            raise Exception('Non available appointments warning detected')
+        except NoSuchElementException:
+            pass
