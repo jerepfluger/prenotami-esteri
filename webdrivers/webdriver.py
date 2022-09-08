@@ -3,6 +3,7 @@ from selenium.webdriver import ChromeOptions, FirefoxOptions
 
 from config.config import settings
 from helpers.logger import logger
+from helpers.webdriver.config_helper import retrieve_firefox_binary_path_based_on_os
 
 
 class ChromeWebdriver:
@@ -11,7 +12,7 @@ class ChromeWebdriver:
         logger.info('Creating Chromium Web Driver')
         options = ChromeOptions()
         options.binary_location = settings.web_driver.chrome_binary
-        options.add_argument('headless')
+        # options.add_argument('headless')
         options.add_argument('hide-scrollbars')
         options.add_argument('disable-gpu')
         options.add_argument('no-sandbox')
@@ -33,7 +34,7 @@ class FirefoxWebdriver:
         logger.info('Creating Firefox Web Driver')
 
         options = FirefoxOptions()
-        options.binary_location = settings.web_driver.firefox_binary
+        options.binary_location = retrieve_firefox_binary_path_based_on_os(settings.web_driver.firefox_binary)
         # options.add_argument('--headless')
         options.add_argument('--new_instance')
 
