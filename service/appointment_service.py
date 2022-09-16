@@ -86,12 +86,6 @@ class AppointmentService:
 
     @retry_on_exception(max_attempts=100, retry_sleep_time=5)
     def search_for_available_appointment(self, appointment_data):
-        self.driver.get('https://prenotami.esteri.it/Language/ChangeLanguage?lang=13')
-        wait_presence_of_element_located_by_id(self.driver, 5, 'advanced', self.unlimited_wait)
-        self.driver.get('https://prenotami.esteri.it/Services')
-
-        # Waiting for prenotami tab to be fully loaded
-        wait_presence_of_element_located_by_id(self.driver, 5, 'dataTableServices', self.unlimited_wait)
         logger.info('Selecting appointment type {}'.format(appointment_data['appointment_type']))
         self.redirect_to_appointment_page(appointment_data['appointment_type'])
         self.raise_exception_on_non_available_appointment_warning_presence()

@@ -2,30 +2,30 @@ import enum
 
 
 class MaritalStatus(enum.Enum):
-    CASADO_CASADA = 'Casado/a'
-    DIVORCIADO_DIVORCIADA = 'Divorciado/a'
-    VIUDO_VIUDA = 'Viudo/a'
-    SOLTERO_SOLTERA = 'Soltero/a'
-    SEPARADO_SEPARADA = 'Separado/a'
-    UNION_CIVIL = 'Unido/a civilmente'
-    SEPARADO_UNION_CIVIL = 'Separado/a de Un. Civ.'
-    DIVORCIADO_UNION_CIVIL = 'Divorciado/a de Un. Civ.'
-    VIUDO_UNION_CIVIL = 'Viudo/a de Un. Civ.'
+    CASADO_CASADA = 'Coniugato/a'
+    DIVORCIADO_DIVORCIADA = 'Divorziato/a'
+    VIUDO_VIUDA = 'Vedovo/a'
+    SOLTERO_SOLTERA = 'Celibe/Nubile'
+    SEPARADO_SEPARADA = 'Separato/a'
+    UNION_CIVIL = 'Unito/a Civilmente'
+    SEPARADO_UNION_CIVIL = 'Separato/a da Un. Civ.'
+    DIVORCIADO_UNION_CIVIL = 'Divorziato/a da Un. Civ.'
+    VIUDO_UNION_CIVIL = 'Vedovo/a da Un. Civ.'
 
 
 class ParentalRelationship(enum.Enum):
-    CONCUBINO = 'Concubino'
-    CONYUGE = 'Conyuge'
-    CONYUGE_DIVORCIADO = 'Conyuge divorciado'
-    CONYUGE_SEPARADO = 'Conyuge separado'
-    HERMANO_HERMANA = 'Hermano/Hermana'
-    HIJO_OTRO_CONYUGE = 'Hijo de otro conyuge'
-    HIJO_HIJA = 'Hijo/a'
-    MENOR_EN_TENENCIA = 'Menor en tenencia'
-    NIETO = 'Nieto'
-    PADRE_MADRE = 'Padre/Madre'
-    SUEGRO_SUEGRA = 'Suegro/Suegra'
-    YERNO_NUERA = 'Yerno/Nuera'
+    CONCUBINO = 'Convivente'
+    CONYUGE = 'Coniuge'
+    CONYUGE_DIVORCIADO = 'Coniuge divorziato'
+    CONYUGE_SEPARADO = 'Coniuge separato'
+    HERMANO_HERMANA = 'Fratello/Sorella'
+    HIJO_OTRO_CONYUGE = 'Figlio di altro coniuge'
+    HIJO_HIJA = 'Figlio/a'
+    MENOR_EN_TENENCIA = 'Minore in affidamento'
+    NIETO = 'Nipote'
+    PADRE_MADRE = 'Genitore'
+    SUEGRO_SUEGRA = 'Suocero/Suocera'
+    YERNO_NUERA = 'Genero/Nuora'
 
 
 def return_full_marital_status(marital_status):

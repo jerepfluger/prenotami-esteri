@@ -85,19 +85,6 @@ class CitizenshipService:
 
     @retry_on_exception(max_attempts=100, retry_sleep_time=5)
     def search_for_available_appointment(self, appointment_data):
-        self.driver.get('https://prenotami.esteri.it/Language/ChangeLanguage?lang=13')
-        wait_presence_of_element_located_by_id(self.driver, 5, 'advanced', self.unlimited_wait,
-                                               'Timeout waiting for language being set to spanish')
-
-        self.driver.get('https://prenotami.esteri.it/Services')
-
-        # Waiting for prenotami tab to be fully loaded
-        wait_presence_of_element_located_by_id(self.driver, 5, 'dataTableServices', self.unlimited_wait,
-                                               'Timeout waiting for appointment tab to be fully loaded')
-
-        # FIXME: This thing need to be fixed. Needs to be more 'intelligent'
-        sleep_if_necessary()
-
         logger.info('Selecting appointment type descendant citizenship')
         self.driver.get('https://prenotami.esteri.it/Services/Booking/340')
         self.raise_exception_on_non_available_appointment_warning_presence()
